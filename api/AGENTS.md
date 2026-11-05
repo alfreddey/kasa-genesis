@@ -4,7 +4,11 @@ The FastAPI service. The root `AGENTS.md` has the repo-wide map and commands; th
 
 ## Request flow
 
-`POST /api/speak {"text", "language"}` → `app.speak` validates the language against `LANGUAGES` → `tts.read_aloud` splits the text into sentences of at most 300 characters (`split_sentences`) → calls `synth.synthesize(chunk, language)` for each → joins them with 0.35 s pauses → `encode_wav` returns 16-bit mono WAV bytes.
+`POST /api/speak {"text", "language"}` → `app.speak` validates the language against `LANGUAGES` → `tts.read_aloud` cleans the text with `text.normalize_text` (NFC, look-alike letters, spacing) → splits it into sentences of at most 300 characters (`split_sentences`) and drops chunks that are only punctuation → calls `synth.synthesize(chunk, language)` for each → joins them as 16-bit PCM with 0.35 s pauses (every chunk must use the same sample rate) → `encode_wav` returns mono WAV bytes.
+
+Why the normalizer matters: TTS tokenizers silently drop characters outside their vocabulary, so a Greek "ε" typed for "ɛ" or a decomposed accent would be skipped in the audio with no error. Numbers and English words are not handled yet.
+
+`load_stories` raises `StoryError` naming the file for invalid JSON, a missing field or a duplicate id, and accepts files saved with a byte order mark.
 
 `MmsSynthesizer` loads one `VitsModel` per language on first use and caches it, guarded by a lock.
 
