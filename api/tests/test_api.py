@@ -1,33 +1,7 @@
+"""HTTP endpoints in kasa/app.py."""
+
 import io
 import wave
-
-import pytest
-from fastapi.testclient import TestClient
-
-from kasa.app import create_app
-from kasa.stories import load_stories
-from kasa.tts import split_sentences
-
-
-class FakeSynth:
-    """Stands in for the real model so tests need no download."""
-
-    def __init__(self):
-        self.calls = []
-
-    def synthesize(self, text, language):
-        self.calls.append((text, language))
-        return [0.1] * 1600, 16000  # 0.1 s of audio per chunk
-
-
-@pytest.fixture
-def synth():
-    return FakeSynth()
-
-
-@pytest.fixture
-def client(synth):
-    return TestClient(create_app(synth=synth))
 
 
 def test_languages(client):
@@ -41,13 +15,6 @@ def test_stories_list_and_detail(client):
     detail = client.get(f"/api/stories/{stories[0]['id']}").json()
     assert detail["text"]
     assert client.get("/api/stories/missing").status_code == 404
-
-
-def test_bundled_stories_use_supported_languages():
-    from kasa.languages import LANGUAGES
-
-    for story in load_stories().values():
-        assert story["language"] in LANGUAGES
 
 
 def test_speak_returns_wav_with_one_chunk_per_sentence(client, synth):
@@ -71,9 +38,3 @@ def test_speak_rejects_blank_text(client):
 
 def test_index_page(client):
     assert "Kasa Genesis" in client.get("/").text
-
-
-def test_split_sentences_breaks_long_text():
-    chunks = split_sentences("word " * 200, max_chars=50)
-    assert all(len(c) <= 50 for c in chunks)
-    assert " ".join(chunks).split() == ["word"] * 200
