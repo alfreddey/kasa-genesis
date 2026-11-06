@@ -6,7 +6,7 @@ Kasa Genesis reads stories written in Ghanaian languages aloud. It is built for 
 
 ![The current page: pick a story or paste text, choose a language, press Read aloud](docs/images/screenshot.png)
 
-The page above is a temporary single HTML page; the Next.js web app (#3) replaces it. The product goals and roadmap live in issue #32, and the product spec in #79.
+The page above is the temporary single HTML page the API serves; the Next.js web app in `web/` replaces it. The product goals and roadmap live in issue #32, and the product spec in #79.
 
 ## Languages
 
@@ -22,12 +22,12 @@ Ga is planned for a later release (#13). To add a language, see [CONTRIBUTING.md
 ## Architecture
 
 ```
-Browser ──► Next.js web app (web/, planned #3) ──► FastAPI API (api/) ──► TTS voice (Synthesizer)
+Browser ──► Next.js web app (web/) ──► FastAPI API (api/) ──► TTS voice (Synthesizer)
                                                           │                  mms | tone | silent | module:Class
                                                           └──► stories/*.json
 ```
 
-- **Web app**: today a single static page served by the API at `/`; the Next.js app in `web/` is coming in #3.
+- **Web app**: Next.js 15 in `web/` (a story list and a story player), calling the API's `/api/v1` routes. The old single page at `/` stays until it is no longer needed.
 - **API**: FastAPI in `api/kasa/`. It splits text into sentences, normalizes the letters, synthesizes each sentence and returns one WAV.
 - **Voice**: anything that implements the `Synthesizer` protocol in `api/kasa/tts.py`, chosen at startup with `KASA_VOICE`. Our own fine-tuned model will plug in here (#11).
 
@@ -63,7 +63,16 @@ The first time you read a story in a language, the model (about 150 MB) download
 
 Settings the API reads are listed in [.env.example](.env.example): `KASA_VOICE`, `KASA_FLAGS` and `STORIES_DIR`.
 
-The web app (`web/`) does not exist yet; its setup steps will be added here with #3.
+The web app needs Node.js 20 or newer. In a second terminal, with the API running:
+
+```bash
+cd web
+cp .env.example .env.local   # NEXT_PUBLIC_API_URL=http://localhost:8000
+npm ci
+npm run dev                  # http://localhost:3000
+```
+
+The web app calls the `/api/v1` routes, which arrive with #4; until that merges it shows "Could not reach the server". Commands and conventions for `web/` are in [web/AGENTS.md](web/AGENTS.md).
 
 ## Experimenting
 
@@ -105,7 +114,9 @@ Writing or translating a story? Read the [story and spelling guide](docs/content
 - `experiments/`: dated experiment write-ups; `_template/` is the starter.
 - `AGENTS.md`: a map of the code, commands and conventions for coding agents and new contributors.
 
-The page at `api/kasa/static/index.html` is temporary; the Next.js app in `web/` (issue #3) replaces it.
+- `web/`: the Next.js frontend. Has its own `AGENTS.md`.
+
+The page at `api/kasa/static/index.html` is temporary; the Next.js app in `web/` replaces it.
 
 ## Contributing and licence
 

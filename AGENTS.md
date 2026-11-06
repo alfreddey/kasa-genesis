@@ -4,7 +4,7 @@ Guide for coding agents (Claude Code, Codex, Cursor and others) working in this 
 
 ## What this is
 
-Kasa Genesis is a web app that reads stories written in Ghanaian languages (Twi/Akan, Ewe) aloud with a text-to-speech model. Today it is one FastAPI service that also serves a single static HTML page. A separate Next.js frontend in `web/` is planned (issue #3).
+Kasa Genesis is a web app that reads stories written in Ghanaian languages (Twi/Akan, Ewe) aloud with a text-to-speech model. It is a FastAPI service in `api/` and a Next.js frontend in `web/` (which has its own AGENTS.md). The API still serves a temporary static page at `/`.
 
 ## Repo map
 
@@ -21,7 +21,8 @@ api/                    Python API (FastAPI). Has its own AGENTS.md.
   kasa/static/index.html  Temporary single-page UI, replaced by web/ later.
   tests/                pytest. conftest.py has FakeSynth and the client fixture.
   pyproject.toml        Dependencies; extras: [tts] (torch, transformers), [dev].
-stories/                Story content as JSON, shared by api/ and the future web/.
+web/                    Next.js 15 frontend (story list + player). Has its own AGENTS.md.
+stories/                Story content as JSON, shared by api/ and web/.
 docs/                   Design notes and research. docs/experimentation.md: how to try ideas fast.
                         docs/content-guide.md: story fields, spelling rules, rights, review checklist.
 experiments/            Dated experiment folders (write-up + code). _template/ is the starter.
@@ -34,7 +35,7 @@ LICENSE                 Code is proprietary (all rights reserved); models and da
 Makefile                setup / test / run shortcuts.
 ```
 
-Planned, not here yet: `web/` (Next.js, #3), `docker-compose.yml` and Dockerfiles (#5), full CI (#6).
+Planned, not here yet: `docker-compose.yml` and Dockerfiles (#5), full CI (#6).
 
 ## Commands
 

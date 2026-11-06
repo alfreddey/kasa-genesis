@@ -55,9 +55,9 @@ Types: `feat`, `fix`, `docs`, `content`, `test`, `refactor`, `perf`, `chore`, `c
 | App | Tests | Lint |
 | --- | --- | --- |
 | `api/` | `make test` (pytest, uses a fake synthesizer so no model or GPU is needed) | Not set up yet; ruff is planned in #6 and #40 |
-| `web/` | Not created yet (#3) | Not created yet (#3) |
+| `web/` | `npm test` (Vitest, network mocked), `npm run typecheck`, `npm run build` | `npm run lint` (ESLint + Prettier check; fix with `npm run format`) |
 
-CI runs the API tests on every pull request ([ci.yml](.github/workflows/ci.yml)). Full CI with lint, type checks and Docker builds is tracked in #6. This table will be updated as those land.
+Run the `web/` commands from inside `web/` (see [web/AGENTS.md](web/AGENTS.md)). CI currently runs the API tests on every pull request ([ci.yml](.github/workflows/ci.yml)). Full CI with lint, type checks and Docker builds is tracked in #6. This table will be updated as those land.
 
 Test rules that save review time:
 
