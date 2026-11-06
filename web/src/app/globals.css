@@ -1,0 +1,61 @@
+/* Placeholder styles. The real design system comes from Figma (#80, #41-#47). */
+:root {
+  color-scheme: light dark;
+  --fg: #1a1a1a;
+  --bg: #fafaf7;
+  --muted: #666;
+  --accent: #b5541c;
+  --error: #b00020;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg: #eee;
+    --bg: #161616;
+    --muted: #aaa;
+    --accent: #f0a070;
+    --error: #ff8a80;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0 auto;
+  max-width: 42rem;
+  padding: 1.5rem 1rem;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  color: var(--fg);
+  background: var(--bg);
+}
+a {
+  color: var(--accent);
+}
+.muted {
+  color: var(--muted);
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.story-list {
+  padding-left: 1.2rem;
+}
+.story-list li {
+  margin: 0.4rem 0;
+}
+.status {
+  color: var(--muted);
+}
+.status-error {
+  color: var(--error);
+}
+audio {
+  width: 100%;
+}
+.story-text {
+  font-size: 1.25rem;
+}
