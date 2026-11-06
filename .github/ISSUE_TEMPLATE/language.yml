@@ -1,0 +1,28 @@
+name: New language
+description: Propose a new language for the app to read stories in. To submit a story, use "Submit a story".
+labels: [content]
+body:
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      description: Name and ISO 639-3 code, for example Ga (gaa) or Dagbani (dag).
+    validations:
+      required: true
+  - type: textarea
+    id: voice
+    attributes:
+      label: Voice and data
+      description: Any speech model or recordings you know of for this language, with their licences. Non-commercial (NC) licences cannot be used for the product.
+    validations:
+      required: true
+  - type: textarea
+    id: speaker
+    attributes:
+      label: Native speakers
+      description: Who can check spelling and pronunciation, and write or review stories?
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Special letters, tones, or spelling conventions to know about.

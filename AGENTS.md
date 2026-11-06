@@ -23,10 +23,11 @@ api/                    Python API (FastAPI). Has its own AGENTS.md.
   pyproject.toml        Dependencies; extras: [tts] (torch, transformers), [dev].
 stories/                Story content as JSON, shared by api/ and the future web/.
 docs/                   Design notes and research. docs/experimentation.md: how to try ideas fast.
+                        docs/content-guide.md: story fields, spelling rules, rights, review checklist.
 experiments/            Dated experiment folders (write-up + code). _template/ is the starter.
 .env.example            Settings the API reads: KASA_VOICE, KASA_FLAGS, STORIES_DIR.
 .github/workflows/ci.yml  CI: installs api/ and runs pytest.
-.github/                PR template and issue templates (bug, feature, story or language).
+.github/                PR template and issue forms (bug, feature, submit a story, new language).
 CONTRIBUTING.md         Branches, Conventional Commits, tests, adding stories/languages, PR process.
 LICENSE                 Code is proprietary (all rights reserved); models and data keep their own licences.
 .editorconfig           UTF-8, LF, 4 spaces for Python, 2 for everything else.
@@ -62,13 +63,14 @@ Without make: `cd api && python3 -m venv .venv && . .venv/bin/activate && pip in
 | Swap the TTS model or backend | Implement the `Synthesizer` protocol and run with `KASA_VOICE=module:Class`; add a short name in `api/kasa/voices.py` once it is a regular option |
 | Ship a feature turned off | Add a `Flag` in `api/kasa/flags.py`, read `app.state.flags`, test both values |
 | Try an idea without touching the app | `make experiment NAME=...`, see `docs/experimentation.md` |
-| Add a story | New file `stories/<id>.json`: `{"id", "title", "language", "text"}` |
+| Add a story | Read `docs/content-guide.md` first, then a new file `stories/<id>.json`: `{"id", "title", "language", "text"}` (plus `author`, `source`, `license` from #9) |
 
 ## Conventions
 
 - Tests never load the real model. Use the `client` and `synth` fixtures from `api/tests/conftest.py`; `synth.calls` records what was synthesized.
 - Heavy imports (`torch`, `transformers`) stay inside functions so the API and tests start without them.
 - Language codes are ISO 639-3 (`aka`, `ewe`), and every story's `language` must be in `LANGUAGES` (a test checks this).
+- Before you add or edit a story, read `docs/content-guide.md` (spelling per language, writing rules for the voice, rights). Never "fix" spelling in a language you cannot verify; ask a native speaker.
 - Story text uses the proper letters (ɛ, ɔ, ŋ, ƒ, ʋ), not look-alikes such as Greek ε, and is saved in Unicode NFC. Files are UTF-8. A test fails if a bundled story would change under `normalize_text`.
 - One test file per module: `test_api.py`, `test_tts.py`, `test_text.py`, `test_stories.py`, `test_voices.py`, `test_flags.py`, `test_say.py`.
 - `kasa.app` builds its voice and flags at import, from `KASA_VOICE` and `KASA_FLAGS`. Tests pass `synth=` and `flags=` to `create_app` instead of setting env vars.

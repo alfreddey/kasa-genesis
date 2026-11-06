@@ -1,0 +1,84 @@
+name: Submit a story
+description: Send a story in Twi, Ewe or Ga without using git. A maintainer turns it into a story file.
+title: "Story: "
+labels: ["content"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for writing for children! Please read the [story and spelling guide](https://github.com/alfreddey/kasa-genesis/blob/main/docs/content-guide.md) first, especially the spelling section for your language and the rights section.
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      description: In the story's language, with correct spelling.
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - Twi (Akan)
+        - Ewe
+        - Ga (not read aloud yet)
+    validations:
+      required: true
+  - type: input
+    id: dialect
+    attributes:
+      label: Dialect
+      description: For example Asante or Akuapem Twi. Leave empty if you are not sure.
+  - type: textarea
+    id: text
+    attributes:
+      label: Story text
+      description: Use ɛ, ɔ, ŋ, ƒ, ʋ, ɖ, ɣ where needed. Write numbers as words. Leave a blank line between paragraphs.
+    validations:
+      required: true
+  - type: textarea
+    id: translation
+    attributes:
+      label: English translation (optional)
+  - type: dropdown
+    id: level
+    attributes:
+      label: Level
+      options:
+        - beginner
+        - intermediate
+        - advanced
+  - type: input
+    id: author
+    attributes:
+      label: Author
+      description: Who wrote it, or "Traditional, retold by <name>".
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source
+      description: '"Written for Kasa Genesis", or a book (title, year, page) or link.'
+    validations:
+      required: true
+  - type: dropdown
+    id: license
+    attributes:
+      label: License
+      options:
+        - CC-BY-4.0 (recommended for stories you wrote)
+        - CC-BY-SA-4.0
+        - CC0-1.0
+        - public-domain
+    validations:
+      required: true
+  - type: checkboxes
+    id: rights
+    attributes:
+      label: Rights
+      options:
+        - label: I wrote this story, or it is public domain, or it is openly licensed as stated above. It is not copied from a book, website or app without permission.
+          required: true
+        - label: It is suitable for children aged 4 to 10.
+          required: true

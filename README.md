@@ -95,6 +95,8 @@ Drop a JSON file in `stories/` (details in [CONTRIBUTING.md](CONTRIBUTING.md#add
 
 The two bundled stories are short greeting placeholders until real stories are added.
 
+Writing or translating a story? Read the [story and spelling guide](docs/content-guide.md) first. It covers the story fields, spelling for Twi and Ewe, rights, and the review checklist, and you can submit a story through a GitHub issue form without using git. See also [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Layout
 
 - `api/`: the FastAPI service (`kasa` package, `pyproject.toml`, `tests/`).

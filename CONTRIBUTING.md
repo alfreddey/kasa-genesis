@@ -2,6 +2,10 @@
 
 Thanks for helping. This guide covers how work moves from an idea to a merged pull request. For a map of the code and where to change things, read [AGENTS.md](AGENTS.md) and [api/AGENTS.md](api/AGENTS.md); this guide links to them rather than repeating them.
 
+## Stories and translations
+
+Writers, translators and reviewers do not need to code. Start with the [story and spelling guide](docs/content-guide.md): it explains the story fields, how to submit a story (the "Submit a story" issue form or a pull request), how to spell and type each language, what you may submit, and the native-speaker review checklist. The rest of this guide is mostly for code changes.
+
 ## Set up
 
 ```bash
@@ -14,7 +18,7 @@ make dev      # http://localhost:8000 with the instant placeholder voice
 
 ## Pick or open an issue
 
-Every change starts from a GitHub issue, so the reason for it is written down. The roadmap issue (#32) lists them all. If you are about to start something new, open an issue first with one of the templates (bug, feature, or new story or language), and add it to #32.
+Every change starts from a GitHub issue, so the reason for it is written down. The roadmap issue (#32) lists them all. If you are about to start something new, open an issue first with one of the templates (bug, feature, submit a story, or new language), and add it to #32.
 
 ## Branches
 
@@ -69,6 +73,8 @@ Commit the write-up and code, never model weights, datasets or generated audio. 
 
 ## Add a story
 
+Read the [story and spelling guide](docs/content-guide.md) first; it is the source of truth for story fields, spelling and rights. Without git, use the "Submit a story" issue form. With git:
+
 1. Create `stories/<id>.json`, where `<id>` is lowercase with hyphens:
 
    ```json
@@ -78,7 +84,7 @@ Commit the write-up and code, never model weights, datasets or generated audio. 
 2. `language` must be a code in `api/kasa/languages.py` (`aka`, `ewe`).
 3. Use the proper letters (ɛ, ɔ, ŋ, ƒ, ʋ), not look-alikes such as Greek ε, and save the file as UTF-8. A test fails if the text would change under `normalize_text`, so run `make test`.
 4. Listen to it: `make say STORY=<id>` (with the real voice on a machine that can download the model).
-5. Say in the pull request where the story comes from and that we may use it.
+5. Fill in where the story comes from and its licence (`author`, `source`, `license`, see the guide), and ask a native speaker to review it with the guide's checklist.
 
 ## Add a language
 
@@ -87,7 +93,7 @@ Commit the write-up and code, never model weights, datasets or generated audio. 
 3. Run `make test`; a test checks every story's language is registered.
 4. Check the voice's licence. MMS models are non-commercial (#7); note the licence in the pull request.
 
-Use the "New story or language" issue template to propose one first, especially if you can help check spelling or pronunciation as a speaker.
+Use the "New language" issue template to propose one first, especially if you can help check spelling or pronunciation as a speaker.
 
 ## Pull requests
 
