@@ -17,6 +17,7 @@ jobs:
   # Works out which apps a PR touches, so a web-only change skips the API job
   # and the other way round. Pushes to main always run everything.
   changes:
+    name: Detect what changed
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -52,7 +53,7 @@ jobs:
               - '.github/workflows/ci.yml'
 
   api:
-    name: api (Python 3.12)
+    name: API - lint, types, tests
     needs: changes
     if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
@@ -77,6 +78,7 @@ jobs:
         run: pytest -q
 
   web:
+    name: Web - lint, types, tests, build
     needs: changes
     if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
@@ -104,7 +106,7 @@ jobs:
 
   # Builds both images to prove the Dockerfiles work. Nothing is pushed.
   docker:
-    name: docker (${{ matrix.image }})
+    name: Docker - build ${{ matrix.image }} image
     needs: changes
     if: needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-latest
@@ -136,7 +138,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
   compose:
-    name: docker compose config
+    name: Docker - validate compose file
     needs: changes
     if: needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-latest
