@@ -12,8 +12,9 @@ Kasa Genesis is a web app that reads stories written in Ghanaian languages (Twi/
 api/                    Python API (FastAPI). Has its own AGENTS.md.
   kasa/app.py           All HTTP routes. create_app(synth=, stories=) is the factory.
   kasa/tts.py           Synthesizer protocol, sentence splitting, WAV encoding, MmsSynthesizer.
+  kasa/text.py          normalize_text(): NFC, look-alike letters (Greek ε -> ɛ), spacing. Shared by training and inference.
   kasa/languages.py     LANGUAGES registry: code -> name + Hugging Face model id.
-  kasa/stories.py       Loads stories/*.json (path from STORIES_DIR env var).
+  kasa/stories.py       Loads and validates stories/*.json (path from STORIES_DIR env var).
   kasa/static/index.html  Temporary single-page UI, replaced by web/ later.
   tests/                pytest. conftest.py has FakeSynth and the client fixture.
   pyproject.toml        Dependencies; extras: [tts] (torch, transformers), [dev].
@@ -45,6 +46,7 @@ Without make: `cd api && python3 -m venv .venv && . .venv/bin/activate && pip in
 | Add a language | `api/kasa/languages.py` (one `Language(...)` line), then a story in `stories/` |
 | Add or change an endpoint | `api/kasa/app.py`, plus a test in `api/tests/test_api.py` |
 | Change how text is chunked or audio is built | `api/kasa/tts.py`, tests in `api/tests/test_tts.py` |
+| Change how text is cleaned before synthesis | `api/kasa/text.py`, tests in `api/tests/test_text.py` |
 | Swap the TTS model or backend | Implement the `Synthesizer` protocol in `api/kasa/tts.py` and pass it to `create_app` |
 | Add a story | New file `stories/<id>.json`: `{"id", "title", "language", "text"}` |
 
@@ -53,8 +55,8 @@ Without make: `cd api && python3 -m venv .venv && . .venv/bin/activate && pip in
 - Tests never load the real model. Use the `client` and `synth` fixtures from `api/tests/conftest.py`; `synth.calls` records what was synthesized.
 - Heavy imports (`torch`, `transformers`) stay inside functions so the API and tests start without them.
 - Language codes are ISO 639-3 (`aka`, `ewe`), and every story's `language` must be in `LANGUAGES` (a test checks this).
-- Story text uses the proper letters (ɛ, ɔ, ŋ, ƒ, ʋ). Files are UTF-8.
-- One test file per module: `test_api.py`, `test_tts.py`, `test_stories.py`.
+- Story text uses the proper letters (ɛ, ɔ, ŋ, ƒ, ʋ), not look-alikes such as Greek ε, and is saved in Unicode NFC. Files are UTF-8. A test fails if a bundled story would change under `normalize_text`.
+- One test file per module: `test_api.py`, `test_tts.py`, `test_text.py`, `test_stories.py`.
 - Branches: `claude/...` for agent work. Small PRs that reference the issue they close.
 
 ## Gotchas

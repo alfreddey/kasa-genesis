@@ -54,7 +54,11 @@ $("speak").onclick = async () => {
   try {
     const r = await fetch("/api/speak", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: $("text").value, language: $("language").value }) });
-    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    if (!r.ok) {
+      // FastAPI sends a string for 400s but a list of errors for 422s (for example text over 5000 characters).
+      const detail = await r.json().then(b => b.detail, () => null);
+      throw new Error(Array.isArray(detail) ? detail.map(d => d.msg).join("; ") : detail || r.statusText);
+    }
     const p = $("player"); p.src = URL.createObjectURL(await r.blob()); p.hidden = false; p.play();
     $("status").textContent = "";
   } catch (err) { $("status").textContent = "Could not read the story: " + err.message; }
