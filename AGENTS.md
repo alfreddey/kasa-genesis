@@ -4,7 +4,7 @@ Guide for coding agents (Claude Code, Codex, Cursor and others) working in this 
 
 ## What this is
 
-Kasa Genesis is a web app that reads stories written in Ghanaian languages (Twi/Akan, Ewe) aloud with a text-to-speech model. Today it is one FastAPI service that also serves a single static HTML page. A separate Next.js frontend in `web/` is planned (issue #3).
+Kasa Genesis is a web app that reads stories written in Ghanaian languages (Twi/Akan, Ewe) aloud with a text-to-speech model. It is a FastAPI service in `api/` and a Next.js frontend in `web/` (which has its own AGENTS.md). The API still serves a temporary static page at `/`.
 
 ## Repo map
 
@@ -25,13 +25,18 @@ api/                    Python API (FastAPI). Has its own AGENTS.md.
   kasa/static/index.html  Temporary single-page UI, replaced by web/ later.
   tests/                pytest. conftest.py has FakeSynth and the client fixture.
   pyproject.toml        Dependencies; extras: [tts] (torch, transformers), [dev].
-stories/                Story content as JSON, shared by api/ and the future web/.
+web/                    Next.js 15 frontend (story list + player). Has its own AGENTS.md.
+stories/                Story content as JSON, shared by api/ and web/.
 docs/                   Design notes and research. docs/experimentation.md: how to try ideas fast.
                         docs/content-guide.md: story fields, spelling rules, rights, review checklist.
                         docs/db-schema.md: the database design (#71). docs/adr/: decision records.
 experiments/            Dated experiment folders (write-up + code). _template/ is the starter.
 .env.example            Every setting the API reads (ALLOWED_ORIGINS, CACHE_DIR, KASA_VOICE, ...).
 .github/workflows/ci.yml  CI: installs api/, runs ruff, mypy and pytest.
+.github/                PR template and issue forms (bug, feature, submit a story, new language).
+CONTRIBUTING.md         Branches, Conventional Commits, tests, adding stories/languages, PR process.
+LICENSE                 Code is proprietary (all rights reserved); models and data keep their own licences.
+.editorconfig           UTF-8, LF, 4 spaces for Python, 2 for everything else.
 Makefile                setup / test / run shortcuts.
 ```
 
@@ -77,7 +82,7 @@ Without make: `cd api && python3 -m venv .venv && . .venv/bin/activate && pip in
 - One test file per module: `test_api.py`, `test_tts.py`, `test_text.py`, `test_stories.py`, `test_voices.py`, `test_flags.py`, `test_say.py`.
 - `kasa.app` builds its voice and flags at import, from `KASA_VOICE` and `KASA_FLAGS`. Tests pass `synth=` and `flags=` to `create_app` instead of setting env vars.
 - Never commit weights, datasets or generated audio; `experiments/*/output/` is ignored for that.
-- Branches: `claude/...` for agent work. Small PRs that reference the issue they close.
+- Branches: `claude/...` for agent work. Small PRs that reference the issue they close. Commits and PR titles use Conventional Commits (see CONTRIBUTING.md).
 
 ## Gotchas
 
