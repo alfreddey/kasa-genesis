@@ -9,34 +9,30 @@ Kasa Genesis reads stories written in Ghanaian local languages aloud using an op
 | Twi (Akan) | `aka` | [facebook/mms-tts-aka](https://huggingface.co/facebook/mms-tts-aka) |
 | Ewe | `ewe` | [facebook/mms-tts-ewe](https://huggingface.co/facebook/mms-tts-ewe) |
 
-The models come from Meta's Massively Multilingual Speech (MMS) project and are licensed **CC-BY-NC 4.0**, so they can be used for research and non-commercial purposes only. Add a language by adding an entry in `kasa/languages.py`.
+The models come from Meta's Massively Multilingual Speech (MMS) project and are licensed **CC-BY-NC 4.0**, so they can be used for research and non-commercial purposes only. Add a language by adding an entry in `api/kasa/languages.py`.
 
-## Setup
+## Setup, run and test
 
-Python 3.10 or newer is required.
+Python 3.10 or newer is required. From the repo root:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[tts,dev]"   # tts pulls in PyTorch and transformers
+make setup       # API + test deps, no model download
+make test        # tests use a fake synthesizer, so they need no download or GPU
+make setup-tts   # adds PyTorch and transformers for the real model
+make run         # serves http://localhost:8000
 ```
 
-## Run
+Without make:
 
 ```bash
+cd api
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[tts,dev]"
+pytest
 uvicorn kasa.app:app --reload
 ```
 
-Then open http://localhost:8000. The first time you read a story in a language, the model (about 150 MB) downloads from Hugging Face, so that first request is slow.
-
-## Test
-
-```bash
-pip install -e ".[dev]"
-pytest
-```
-
-The tests swap the real model for a fake one, so they run in under a second and need no download or GPU.
+The first time you read a story in a language, the model (about 150 MB) downloads from Hugging Face, so that first request is slow.
 
 ## API
 
@@ -56,8 +52,9 @@ The two bundled stories are short greeting placeholders until real stories are a
 
 ## Layout
 
-- `kasa/app.py`: FastAPI routes and the web page.
-- `kasa/tts.py`: sentence splitting, WAV encoding and the MMS model wrapper.
-- `kasa/languages.py`: language list and model ids.
-- `kasa/static/index.html`: the single-page UI.
-- `stories/`: story files.
+- `api/`: the FastAPI service (`kasa` package, `pyproject.toml`, `tests/`).
+- `stories/`: story files, shared by the API and the future web app. Override the path with `STORIES_DIR`.
+- `docs/`: design notes and research.
+- `AGENTS.md`: a map of the code, commands and conventions for coding agents and new contributors.
+
+The page at `api/kasa/static/index.html` is temporary; the Next.js app in `web/` (issue #3) replaces it.
