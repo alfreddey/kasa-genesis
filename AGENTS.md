@@ -26,6 +26,10 @@ docs/                   Design notes and research. docs/experimentation.md: how 
 experiments/            Dated experiment folders (write-up + code). _template/ is the starter.
 .env.example            Settings the API reads: KASA_VOICE, KASA_FLAGS, STORIES_DIR.
 .github/workflows/ci.yml  CI: installs api/ and runs pytest.
+.github/                PR template and issue templates (bug, feature, story or language).
+CONTRIBUTING.md         Branches, Conventional Commits, tests, adding stories/languages, PR process.
+LICENSE                 Code is proprietary (all rights reserved); models and data keep their own licences.
+.editorconfig           UTF-8, LF, 4 spaces for Python, 2 for everything else.
 Makefile                setup / test / run shortcuts.
 ```
 
@@ -69,7 +73,7 @@ Without make: `cd api && python3 -m venv .venv && . .venv/bin/activate && pip in
 - One test file per module: `test_api.py`, `test_tts.py`, `test_text.py`, `test_stories.py`, `test_voices.py`, `test_flags.py`, `test_say.py`.
 - `kasa.app` builds its voice and flags at import, from `KASA_VOICE` and `KASA_FLAGS`. Tests pass `synth=` and `flags=` to `create_app` instead of setting env vars.
 - Never commit weights, datasets or generated audio; `experiments/*/output/` is ignored for that.
-- Branches: `claude/...` for agent work. Small PRs that reference the issue they close.
+- Branches: `claude/...` for agent work. Small PRs that reference the issue they close. Commits and PR titles use Conventional Commits (see CONTRIBUTING.md).
 
 ## Gotchas
 
