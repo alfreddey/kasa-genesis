@@ -1,0 +1,12 @@
+Copyright (c) 2026 Kasa Genesis. All rights reserved.
+
+This software and its source code are proprietary. No permission is granted to
+use, copy, modify, merge, publish, distribute, sublicense or sell copies of the
+software, in whole or in part, without prior written permission from the
+copyright holder.
+
+Viewing the source code on GitHub does not grant any licence to it.
+
+Third-party components keep their own licences. In particular, the speech models
+used for local development (Meta MMS-TTS) are licensed CC-BY-NC 4.0, and datasets
+and story texts carry the licences stated where they are used.
