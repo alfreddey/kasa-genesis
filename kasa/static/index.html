@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasa Genesis</title>
+<style>
+  :root { --bg:#fbf8f3; --fg:#222; --accent:#b4461f; --muted:#666; --card:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1b1a18; --fg:#eee; --muted:#aaa; --card:#262421; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:17px/1.5 system-ui, sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:24px 16px; }
+  h1 { margin:0 0 4px; } p.sub { margin:0 0 20px; color:var(--muted); }
+  label { display:block; font-weight:600; margin:14px 0 6px; }
+  select, textarea, button { font:inherit; width:100%; box-sizing:border-box; }
+  select, textarea { padding:10px; border:1px solid #ccc; border-radius:8px; background:var(--card); color:var(--fg); }
+  textarea { min-height:220px; }
+  button { margin-top:14px; padding:12px; border:0; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:wait; }
+  audio { width:100%; margin-top:16px; } #status { color:var(--muted); margin-top:8px; min-height:1.5em; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Kasa Genesis</h1>
+  <p class="sub">Pick a story or paste your own, then press Read aloud.</p>
+  <label for="story">Story</label>
+  <select id="story"><option value="">Write my own</option></select>
+  <label for="language">Language</label>
+  <select id="language"></select>
+  <label for="text">Text</label>
+  <textarea id="text" placeholder="Paste a story here"></textarea>
+  <button id="speak">Read aloud</button>
+  <div id="status"></div>
+  <audio id="player" controls hidden></audio>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+async function init() {
+  const [langs, stories] = await Promise.all([
+    fetch("/api/languages").then(r => r.json()),
+    fetch("/api/stories").then(r => r.json()),
+  ]);
+  for (const l of langs) $("language").add(new Option(l.name, l.code));
+  for (const s of stories) $("story").add(new Option(s.title, s.id));
+}
+$("story").onchange = async (e) => {
+  if (!e.target.value) return;
+  const s = await fetch(`/api/stories/${e.target.value}`).then(r => r.json());
+  $("text").value = s.text; $("language").value = s.language;
+};
+$("speak").onclick = async () => {
+  const btn = $("speak"); btn.disabled = true;
+  $("status").textContent = "Generating speech… the first run per language downloads the model.";
+  try {
+    const r = await fetch("/api/speak", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: $("text").value, language: $("language").value }) });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    const p = $("player"); p.src = URL.createObjectURL(await r.blob()); p.hidden = false; p.play();
+    $("status").textContent = "";
+  } catch (err) { $("status").textContent = "Could not read the story: " + err.message; }
+  finally { btn.disabled = false; }
+};
+init();
+</script>
+</body>
+</html>
