@@ -4,7 +4,7 @@
 VENV := api/.venv
 PY := $(VENV)/bin/python
 
-.PHONY: help setup setup-tts test run dev say experiment clean
+.PHONY: help setup setup-tts test lint openapi run dev say experiment clean
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
@@ -20,6 +20,12 @@ setup-tts: $(PY) ## Also install torch + transformers for the real model
 
 test: ## Run the API tests (fake synthesizer, no download)
 	cd api && .venv/bin/pytest -q
+
+lint: ## Ruff (lint + format check) and mypy on the API
+	cd api && .venv/bin/ruff check . && .venv/bin/ruff format --check . && .venv/bin/mypy
+
+openapi: ## Refresh api/openapi.json after changing the API contract
+	cd api && .venv/bin/python -m kasa.openapi > openapi.json
 
 run: ## Serve the API and page at http://localhost:8000 (voice from KASA_VOICE, default mms)
 	cd api && .venv/bin/uvicorn kasa.app:app --reload

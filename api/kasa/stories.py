@@ -7,6 +7,7 @@ Set the STORIES_DIR env var to read them from somewhere else, for example inside
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 # api/kasa/stories.py -> repo root is three levels up.
 DEFAULT_STORIES_DIR = Path(__file__).resolve().parents[2] / "stories"
@@ -23,11 +24,11 @@ class StoryError(ValueError):
     """A story file is broken. The message names the file so it is easy to fix."""
 
 
-def load_stories(directory: Path | None = None) -> dict[str, dict]:
+def load_stories(directory: Path | None = None) -> dict[str, dict[str, Any]]:
     directory = stories_dir() if directory is None else directory
     if not directory.is_dir():
         raise StoryError(f"Stories folder not found: {directory} (set STORIES_DIR)")
-    stories: dict[str, dict] = {}
+    stories: dict[str, dict[str, Any]] = {}
     for path in sorted(directory.glob("*.json")):
         # utf-8-sig also accepts files saved with a byte order mark, as Windows Notepad does.
         try:

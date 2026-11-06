@@ -29,7 +29,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("text", nargs="?", help="Text to read. Omit when using --story.")
     p.add_argument("--story", help="Read a story from stories/ by id instead of TEXT.")
     p.add_argument("--lang", default="aka", help="Language code (default: aka).")
-    p.add_argument("--voice", default=None, help="Comma-separated voices (default: KASA_VOICE or mms).")
+    p.add_argument(
+        "--voice", default=None, help="Comma-separated voices (default: KASA_VOICE or mms)."
+    )
     p.add_argument("--out", default="experiments/output", help="Folder for the WAV files.")
     args = p.parse_args(argv)
 

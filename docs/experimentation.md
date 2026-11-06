@@ -43,7 +43,7 @@ One WAV per voice lands in `experiments/output/` (ignored by git).
 ## 4. Hide unfinished features behind flags
 
 Declare a flag in `api/kasa/flags.py` (off by default), check `app.state.flags["name"]` in
-the API, and read `GET /api/flags` from the web app. Turn it on locally with
+the API, and read `GET /api/v1/flags` from the web app. Turn it on locally with
 `KASA_FLAGS=name make dev`. Unknown flag names fail at startup, so typos are caught. Delete
 the flag when the feature is kept or dropped, so flags do not pile up.
 

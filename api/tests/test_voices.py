@@ -18,7 +18,9 @@ def test_module_attribute_spec_loads_any_class():
     assert isinstance(load_synthesizer("kasa.voices:SilentSynthesizer"), SilentSynthesizer)
 
 
-@pytest.mark.parametrize("name", ["nope", "kasa.voices:Nope", "no_such_module:X", "kasa.voices:DEFAULT_VOICE"])
+@pytest.mark.parametrize(
+    "name", ["nope", "kasa.voices:Nope", "no_such_module:X", "kasa.voices:DEFAULT_VOICE"]
+)
 def test_bad_voice_names_fail_clearly(name):
     with pytest.raises(ValueError):
         load_synthesizer(name)
