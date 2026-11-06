@@ -24,6 +24,7 @@ api/                    Python API (FastAPI). Has its own AGENTS.md.
 stories/                Story content as JSON, shared by api/ and the future web/.
 docs/                   Design notes and research. docs/experimentation.md: how to try ideas fast.
                         docs/content-guide.md: story fields, spelling rules, rights, review checklist.
+                        docs/db-schema.md: the database design (#71). docs/adr/: decision records.
 experiments/            Dated experiment folders (write-up + code). _template/ is the starter.
 .env.example            Settings the API reads: KASA_VOICE, KASA_FLAGS, STORIES_DIR.
 .github/workflows/ci.yml  CI: installs api/ and runs pytest.
