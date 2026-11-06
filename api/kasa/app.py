@@ -8,7 +8,9 @@ from pydantic import BaseModel, Field
 
 from .languages import LANGUAGES
 from .stories import load_stories
-from .tts import MmsSynthesizer, Synthesizer, read_aloud
+from .flags import parse_flags
+from .tts import Synthesizer, read_aloud
+from .voices import load_synthesizer
 
 STATIC = Path(__file__).resolve().parent / "static"
 MAX_TEXT_CHARS = 5000
@@ -19,9 +21,15 @@ class SpeakRequest(BaseModel):
     language: str
 
 
-def create_app(synth: Synthesizer | None = None, stories: dict | None = None) -> FastAPI:
+def create_app(
+    synth: Synthesizer | None = None,
+    stories: dict | None = None,
+    flags: dict[str, bool] | None = None,
+) -> FastAPI:
     app = FastAPI(title="Kasa Genesis")
-    app.state.synth = synth or MmsSynthesizer()
+    # The voice comes from KASA_VOICE (kasa/voices.py) unless a test passes one in.
+    app.state.synth = synth or load_synthesizer()
+    app.state.flags = parse_flags() if flags is None else flags
     app.state.stories = load_stories() if stories is None else stories
 
     @app.get("/", include_in_schema=False)
@@ -31,6 +39,10 @@ def create_app(synth: Synthesizer | None = None, stories: dict | None = None) ->
     @app.get("/api/languages")
     def languages():
         return [{"code": l.code, "name": l.name} for l in LANGUAGES.values()]
+
+    @app.get("/api/flags")
+    def flags_list():
+        return app.state.flags
 
     @app.get("/api/stories")
     def stories_list():

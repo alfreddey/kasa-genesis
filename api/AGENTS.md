@@ -10,12 +10,15 @@ Why the normalizer matters: TTS tokenizers silently drop characters outside thei
 
 `load_stories` raises `StoryError` naming the file for invalid JSON, a missing field or a duplicate id, and accepts files saved with a byte order mark.
 
+The voice is chosen at startup by `voices.load_synthesizer()` from `KASA_VOICE` (default `mms`). `tone` and `silent` are model-free placeholders for UI work and load tests.
+
 `MmsSynthesizer` loads one `VitsModel` per language on first use and caches it, guarded by a lock.
 
 ## Endpoints (in `kasa/app.py`)
 
 - `GET /` serves `kasa/static/index.html`.
 - `GET /api/languages`, `GET /api/stories`, `GET /api/stories/{id}`.
+- `GET /api/flags` returns `{flag_name: bool}` for every flag in `kasa/flags.py`.
 - `POST /api/speak` returns `audio/wav`; 400 for an unknown language or blank text.
 
 Issue #4 will move these under `/api/v1` and add CORS, settings and `/healthz`.

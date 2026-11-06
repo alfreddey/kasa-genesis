@@ -28,3 +28,7 @@ next-env.d.ts
 .idea/
 .vscode/
 .DS_Store
+
+# Experiment outputs (audio, checkpoints). Commit the write-up and code only.
+experiments/output/
+experiments/*/output/
