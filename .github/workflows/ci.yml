@@ -24,6 +24,7 @@ jobs:
     outputs:
       api: ${{ github.event_name == 'push' || steps.filter.outputs.api == 'true' }}
       web: ${{ github.event_name == 'push' || steps.filter.outputs.web == 'true' }}
+      docker: ${{ github.event_name == 'push' || steps.filter.outputs.docker == 'true' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -37,6 +38,12 @@ jobs:
               - '.github/workflows/ci.yml'
             web:
               - 'web/**'
+              - '.github/workflows/ci.yml'
+            docker:
+              - 'api/**'
+              - 'web/**'
+              - 'stories/**'
+              - 'docker-compose.yml'
               - '.github/workflows/ci.yml'
 
   api:
@@ -98,12 +105,54 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: 1
 
+  # Builds both images to prove the Dockerfiles work. Nothing is pushed.
+  docker:
+    name: docker (${{ matrix.image }})
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: api
+            context: .
+            file: api/Dockerfile
+            # Skip PyTorch so the build stays fast; the TTS layer is not what CI guards.
+            build-args: INSTALL_TTS=false
+          - image: web
+            context: web
+            file: web/Dockerfile
+            build-args: |
+              NEXT_PUBLIC_API_URL=/
+              API_INTERNAL_URL=http://api:8000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          build-args: ${{ matrix.build-args }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  compose:
+    name: docker compose config
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config -q
+
   # The one check to mark as required in branch protection. It passes when every
   # job above passed or was skipped by the path filter, and fails otherwise.
   ci-ok:
     name: CI passed
     if: always()
-    needs: [changes, api, web]
+    needs: [changes, api, web, docker, compose]
     runs-on: ubuntu-latest
     steps:
       - name: Check job results

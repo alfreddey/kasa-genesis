@@ -4,7 +4,7 @@ Guide for coding agents (Claude Code, Codex, Cursor and others) working in this 
 
 ## What this is
 
-Kasa Genesis is a web app that reads stories written in Ghanaian languages (Twi/Akan, Ewe) aloud with a text-to-speech model. Today it is one FastAPI service that also serves a single static HTML page. A separate Next.js frontend in `web/` is planned (issue #3).
+Kasa Genesis is a web app that reads stories written in Ghanaian languages (Twi/Akan, Ewe) aloud with a text-to-speech model. It is a FastAPI service in `api/` and a Next.js frontend in `web/` (which has its own AGENTS.md). The API still serves a temporary static page at `/`.
 
 ## Repo map
 
@@ -25,18 +25,23 @@ api/                    Python API (FastAPI). Has its own AGENTS.md.
   kasa/static/index.html  Temporary single-page UI, replaced by web/ later.
   tests/                pytest. conftest.py has FakeSynth and the client fixture.
   pyproject.toml        Dependencies; extras: [tts] (torch, transformers), [dev].
-stories/                Story content as JSON, shared by api/ and the future web/.
+web/                    Next.js 15 frontend (story list + player). Has its own AGENTS.md.
+stories/                Story content as JSON, shared by api/ and web/.
 docs/                   Design notes and research. docs/experimentation.md: how to try ideas fast.
                         docs/content-guide.md: story fields, spelling rules, rights, review checklist.
                         docs/db-schema.md: the database design (#71). docs/adr/: decision records.
 experiments/            Dated experiment folders (write-up + code). _template/ is the starter.
 .env.example            Every setting the API reads (ALLOWED_ORIGINS, CACHE_DIR, KASA_VOICE, ...).
-.github/workflows/ci.yml  CI: path-filtered api/ (ruff, mypy, pytest) and web/ (lint, typecheck, vitest, build) jobs; "CI passed" is the required check.
+.github/workflows/ci.yml  CI: path-filtered api/ (ruff, mypy, pytest) and web/ (lint, typecheck, vitest, build) jobs, docker builds; "CI passed" is the required check.
 .github/dependabot.yml   Weekly pip, npm and GitHub Actions updates.
+.github/                PR template and issue forms (bug, feature, submit a story, new language).
+CONTRIBUTING.md         Branches, Conventional Commits, tests, adding stories/languages, PR process.
+LICENSE                 Code is proprietary (all rights reserved); models and data keep their own licences.
+.editorconfig           UTF-8, LF, 4 spaces for Python, 2 for everything else.
 Makefile                setup / test / run shortcuts.
 ```
 
-Planned, not here yet: `web/` (Next.js, #3), `docker-compose.yml` and Dockerfiles (#5), full CI (#6).
+Also: `docker-compose.yml`, `api/Dockerfile` (context is the repo root) and `web/Dockerfile`, described in `docs/docker.md`. Planned, not here yet: full CI (#6).
 
 ## Commands
 
@@ -50,6 +55,7 @@ Run from the repo root.
 | Serve at http://localhost:8000 | `make run` |
 | Serve with the instant placeholder voice (no model) | `make dev` |
 | Listen to voices side by side | `make say TEXT="Akwaaba" LANG=aka VOICE=mms,tone` |
+| Run everything in containers | `docker compose up --build` (see `docs/docker.md`) |
 | Start an experiment folder | `make experiment NAME=2026_11_topic` |
 
 Without make: `cd api && python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]" && pytest -q`.
@@ -77,7 +83,7 @@ Without make: `cd api && python3 -m venv .venv && . .venv/bin/activate && pip in
 - One test file per module: `test_api.py`, `test_tts.py`, `test_text.py`, `test_stories.py`, `test_voices.py`, `test_flags.py`, `test_say.py`.
 - `kasa.app` builds its voice and flags at import, from `KASA_VOICE` and `KASA_FLAGS`. Tests pass `synth=` and `flags=` to `create_app` instead of setting env vars.
 - Never commit weights, datasets or generated audio; `experiments/*/output/` is ignored for that.
-- Branches: `claude/...` for agent work. Small PRs that reference the issue they close.
+- Branches: `claude/...` for agent work. Small PRs that reference the issue they close. Commits and PR titles use Conventional Commits (see CONTRIBUTING.md).
 
 ## Gotchas
 
