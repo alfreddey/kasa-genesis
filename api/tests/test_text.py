@@ -29,7 +29,12 @@ def test_invisible_characters_and_odd_spaces_are_cleaned():
 
 
 def test_curly_quotes_and_dashes_become_plain():
-    assert normalize_text("\N{LEFT DOUBLE QUOTATION MARK}Yoo\N{RIGHT DOUBLE QUOTATION MARK} \N{EM DASH} ka") == '"Yoo" - ka'
+    assert (
+        normalize_text(
+            "\N{LEFT DOUBLE QUOTATION MARK}Yoo\N{RIGHT DOUBLE QUOTATION MARK} \N{EM DASH} ka"
+        )
+        == '"Yoo" - ka'
+    )
 
 
 def test_tilde_on_open_o_stays_two_code_points():

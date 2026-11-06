@@ -37,22 +37,22 @@
 const $ = (id) => document.getElementById(id);
 async function init() {
   const [langs, stories] = await Promise.all([
-    fetch("/api/languages").then(r => r.json()),
-    fetch("/api/stories").then(r => r.json()),
+    fetch("/api/v1/languages").then(r => r.json()),
+    fetch("/api/v1/stories").then(r => r.json()),
   ]);
   for (const l of langs) $("language").add(new Option(l.name, l.code));
   for (const s of stories) $("story").add(new Option(s.title, s.id));
 }
 $("story").onchange = async (e) => {
   if (!e.target.value) return;
-  const s = await fetch(`/api/stories/${e.target.value}`).then(r => r.json());
+  const s = await fetch(`/api/v1/stories/${e.target.value}`).then(r => r.json());
   $("text").value = s.text; $("language").value = s.language;
 };
 $("speak").onclick = async () => {
   const btn = $("speak"); btn.disabled = true;
   $("status").textContent = "Generating speech… the first run per language downloads the model.";
   try {
-    const r = await fetch("/api/speak", { method: "POST", headers: { "Content-Type": "application/json" },
+    const r = await fetch("/api/v1/tts", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: $("text").value, language: $("language").value }) });
     if (!r.ok) {
       // FastAPI sends a string for 400s but a list of errors for 422s (for example text over 5000 characters).

@@ -1,8 +1,8 @@
 import pytest
+from fastapi.testclient import TestClient
 
 from kasa.app import create_app
 from kasa.flags import Flag, parse_flags
-from fastapi.testclient import TestClient
 
 KNOWN = {"a": Flag(False, "off by default"), "b": Flag(True, "on by default")}
 
@@ -27,4 +27,4 @@ def test_unknown_flag_is_an_error():
 
 def test_flags_endpoint(synth):
     client = TestClient(create_app(synth=synth, flags={"read_along": True}))
-    assert client.get("/api/flags").json() == {"read_along": True}
+    assert client.get("/api/v1/flags").json() == {"read_along": True}

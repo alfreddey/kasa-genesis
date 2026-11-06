@@ -7,7 +7,8 @@ import io
 import re
 import threading
 import wave
-from typing import Protocol, Sequence
+from collections.abc import Sequence
+from typing import Any, Protocol
 
 from .languages import get_language
 from .text import has_speech, normalize_text
@@ -36,12 +37,12 @@ def split_sentences(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list[str]:
     return chunks
 
 
-def to_pcm16(samples: Sequence[float]) -> array.array:
+def to_pcm16(samples: Sequence[float]) -> array.array[int]:
     """Clip float samples to -1..1 and convert them to 16-bit PCM."""
     return array.array("h", (int(max(-1.0, min(1.0, float(s))) * 32767) for s in samples))
 
 
-def encode_wav(samples: Sequence[float] | array.array, rate: int) -> bytes:
+def encode_wav(samples: Sequence[float] | array.array[int], rate: int) -> bytes:
     pcm = samples if isinstance(samples, array.array) else to_pcm16(samples)
     buf = io.BytesIO()
     with wave.open(buf, "wb") as w:
@@ -77,18 +78,29 @@ def read_aloud(synth: Synthesizer, text: str, language: str) -> bytes:
 
 
 class MmsSynthesizer:
-    """Runs Meta MMS-TTS (VITS) models locally. Each language's model loads on first use."""
+    """Runs Meta MMS-TTS (VITS) models locally. Each language's model loads on first use.
 
-    def __init__(self) -> None:
-        self._models: dict[str, tuple[object, object]] = {}
+    `model_ids` overrides the Hugging Face model for some languages (the TTS_MODELS
+    setting), for example a fine-tuned VITS checkpoint; the rest use languages.py.
+    """
+
+    def __init__(self, model_ids: dict[str, str] | None = None) -> None:
+        self.model_ids = dict(model_ids or {})
+        self._models: dict[str, tuple[Any, Any]] = {}
         self._lock = threading.Lock()
 
-    def _load(self, language: str):
+    def model_id(self, language: str) -> str:
+        return self.model_ids.get(language) or get_language(language).model_id
+
+    def _load(self, language: str) -> tuple[Any, Any]:
         with self._lock:
             if language not in self._models:
-                from transformers import AutoTokenizer, VitsModel  # heavy import, deferred
+                from transformers import (  # type: ignore[import-not-found,unused-ignore]  # heavy, deferred
+                    AutoTokenizer,
+                    VitsModel,
+                )
 
-                model_id = get_language(language).model_id
+                model_id = self.model_id(language)
                 self._models[language] = (
                     VitsModel.from_pretrained(model_id).eval(),
                     AutoTokenizer.from_pretrained(model_id),
@@ -96,7 +108,7 @@ class MmsSynthesizer:
             return self._models[language]
 
     def synthesize(self, text: str, language: str) -> tuple[Sequence[float], int]:
-        import torch
+        import torch  # type: ignore[import-not-found,unused-ignore]
 
         model, tokenizer = self._load(language)
         inputs = tokenizer(text, return_tensors="pt")

@@ -17,7 +17,8 @@ from __future__ import annotations
 import importlib
 import math
 import os
-from typing import Callable, Sequence
+from collections.abc import Callable, Sequence
+from typing import cast
 
 from .tts import MmsSynthesizer, Synthesizer
 
@@ -68,9 +69,16 @@ def voice_name() -> str:
     return os.environ.get("KASA_VOICE", DEFAULT_VOICE).strip() or DEFAULT_VOICE
 
 
-def load_synthesizer(name: str | None = None) -> Synthesizer:
-    """Build the voice called `name` (default: the KASA_VOICE env var, then "mms")."""
+def load_synthesizer(
+    name: str | None = None, model_ids: dict[str, str] | None = None
+) -> Synthesizer:
+    """Build the voice called `name` (default: the KASA_VOICE env var, then "mms").
+
+    `model_ids` ({language: Hugging Face id}) only applies to the "mms" voice.
+    """
     name = voice_name() if name is None else name
+    if name == "mms":
+        return MmsSynthesizer(model_ids)
     if name in VOICES:
         return VOICES[name]()
     if ":" not in name:
@@ -86,4 +94,4 @@ def load_synthesizer(name: str | None = None) -> Synthesizer:
     synth = factory()
     if not callable(getattr(synth, "synthesize", None)):
         raise ValueError(f"Voice {name!r} has no synthesize(text, language) method")
-    return synth
+    return cast(Synthesizer, synth)
