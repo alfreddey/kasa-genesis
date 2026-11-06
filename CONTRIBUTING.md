@@ -57,7 +57,7 @@ Types: `feat`, `fix`, `docs`, `content`, `test`, `refactor`, `perf`, `chore`, `c
 | `api/` | `make test` (pytest, uses a fake synthesizer so no model or GPU is needed) | `make lint` (ruff check, ruff format check, mypy) |
 | `web/` | `npm test` (Vitest, network mocked), `npm run typecheck`, `npm run build` | `npm run lint` (ESLint + Prettier check; fix with `npm run format`) |
 
-Run the `web/` commands from inside `web/` (see [web/AGENTS.md](web/AGENTS.md)). CI runs the API's ruff, mypy and pytest on every pull request ([ci.yml](.github/workflows/ci.yml)); web checks and Docker builds in CI are tracked in #6. If you change an API route, run `make openapi` and update [api/API.md](api/API.md) in the same PR.
+Run the `web/` commands from inside `web/` (see [web/AGENTS.md](web/AGENTS.md)). CI runs the API's ruff, mypy and pytest on every pull request ([ci.yml](.github/workflows/ci.yml)); web checks and Docker image builds in CI are tracked in #6; run the app in containers with `docker compose up --build` ([docs/docker.md](docs/docker.md)). If you change an API route, run `make openapi` and update [api/API.md](api/API.md) in the same PR.
 
 Test rules that save review time:
 

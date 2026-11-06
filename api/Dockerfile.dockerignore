@@ -1,0 +1,8 @@
+# Used for api/Dockerfile, whose context is the repo root: send only what the image needs.
+*
+!api/pyproject.toml
+!api/README.md
+!api/kasa/
+!stories/
+**/__pycache__
+**/*.py[cod]

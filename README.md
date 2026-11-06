@@ -33,7 +33,14 @@ Browser ──► Next.js web app (web/) ──► FastAPI API (api/) ──► 
 
 ## Quick start
 
-Docker Compose is not set up yet (#5); once it is, `docker compose up` will start the web app and the API together. Until then, run the API directly as below.
+With [Docker](https://docs.docker.com/get-docker/) installed, one command starts the web app and the API together:
+
+```bash
+cp .env.example .env   # optional: every setting has a default
+docker compose up --build
+```
+
+Then open http://localhost:3000. The first build downloads CPU-only PyTorch and the first narration in each language downloads the model (about 150 MB), so both are slow once. Add `INSTALL_TTS=false KASA_VOICE=tone` for an instant placeholder voice with no model. To run on a server, see "Deploy to a VPS" in [docs/docker.md](docs/docker.md). To work on the code without Docker, see below.
 
 ## Local development
 

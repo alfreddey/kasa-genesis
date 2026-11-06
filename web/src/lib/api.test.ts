@@ -13,6 +13,12 @@ describe("apiUrl", () => {
     expect(apiUrl("/stories")).toBe("http://localhost:8000/api/v1/stories");
   });
 
+  it('uses same-origin URLs when NEXT_PUBLIC_API_URL is "/" (the Docker image)', () => {
+    vi.stubEnv("NEXT_PUBLIC_API_URL", "/");
+    expect(apiUrl("/stories")).toBe("/api/v1/stories");
+    expect(storyAudioUrl("twi-greetings")).toBe("/api/v1/stories/twi-greetings/audio");
+  });
+
   it("uses NEXT_PUBLIC_API_URL and drops a trailing slash", () => {
     vi.stubEnv("NEXT_PUBLIC_API_URL", "https://api.example.com/");
     expect(apiUrl("/stories")).toBe("https://api.example.com/api/v1/stories");

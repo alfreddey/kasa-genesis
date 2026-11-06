@@ -40,7 +40,7 @@ LICENSE                 Code is proprietary (all rights reserved); models and da
 Makefile                setup / test / run shortcuts.
 ```
 
-Planned, not here yet: `docker-compose.yml` and Dockerfiles (#5), full CI (#6).
+Also: `docker-compose.yml`, `api/Dockerfile` (context is the repo root) and `web/Dockerfile`, described in `docs/docker.md`. Planned, not here yet: full CI (#6).
 
 ## Commands
 
@@ -54,6 +54,7 @@ Run from the repo root.
 | Serve at http://localhost:8000 | `make run` |
 | Serve with the instant placeholder voice (no model) | `make dev` |
 | Listen to voices side by side | `make say TEXT="Akwaaba" LANG=aka VOICE=mms,tone` |
+| Run everything in containers | `docker compose up --build` (see `docs/docker.md`) |
 | Start an experiment folder | `make experiment NAME=2026_11_topic` |
 
 Without make: `cd api && python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]" && pytest -q`.
