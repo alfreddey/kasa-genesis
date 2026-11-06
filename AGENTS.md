@@ -12,6 +12,9 @@ Kasa Genesis is a web app that reads stories written in Ghanaian languages (Twi/
 api/                    Python API (FastAPI). Has its own AGENTS.md.
   kasa/app.py           All HTTP routes. create_app(synth=, stories=) is the factory.
   kasa/tts.py           Synthesizer protocol, sentence splitting, WAV encoding, MmsSynthesizer.
+  kasa/voices.py        Picks the voice from KASA_VOICE: mms, tone, silent, or "module:attribute".
+  kasa/flags.py         Feature flags (FLAGS registry, KASA_FLAGS env var, GET /api/flags).
+  kasa/say.py           CLI: python -m kasa.say writes one WAV per voice to compare them.
   kasa/text.py          normalize_text(): NFC, look-alike letters (Greek ε -> ɛ), spacing. Shared by training and inference.
   kasa/languages.py     LANGUAGES registry: code -> name + Hugging Face model id.
   kasa/stories.py       Loads and validates stories/*.json (path from STORIES_DIR env var).
@@ -19,7 +22,9 @@ api/                    Python API (FastAPI). Has its own AGENTS.md.
   tests/                pytest. conftest.py has FakeSynth and the client fixture.
   pyproject.toml        Dependencies; extras: [tts] (torch, transformers), [dev].
 stories/                Story content as JSON, shared by api/ and the future web/.
-docs/                   Design notes and research (for example tts-research.md, issue #7).
+docs/                   Design notes and research. docs/experimentation.md: how to try ideas fast.
+experiments/            Dated experiment folders (write-up + code). _template/ is the starter.
+.env.example            Settings the API reads: KASA_VOICE, KASA_FLAGS, STORIES_DIR.
 .github/workflows/ci.yml  CI: installs api/ and runs pytest.
 Makefile                setup / test / run shortcuts.
 ```
@@ -36,6 +41,9 @@ Run from the repo root.
 | Run tests | `make test` |
 | Install the real TTS model deps (PyTorch, large) | `make setup-tts` |
 | Serve at http://localhost:8000 | `make run` |
+| Serve with the instant placeholder voice (no model) | `make dev` |
+| Listen to voices side by side | `make say TEXT="Akwaaba" LANG=aka VOICE=mms,tone` |
+| Start an experiment folder | `make experiment NAME=2026_11_topic` |
 
 Without make: `cd api && python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]" && pytest -q`.
 
@@ -47,7 +55,9 @@ Without make: `cd api && python3 -m venv .venv && . .venv/bin/activate && pip in
 | Add or change an endpoint | `api/kasa/app.py`, plus a test in `api/tests/test_api.py` |
 | Change how text is chunked or audio is built | `api/kasa/tts.py`, tests in `api/tests/test_tts.py` |
 | Change how text is cleaned before synthesis | `api/kasa/text.py`, tests in `api/tests/test_text.py` |
-| Swap the TTS model or backend | Implement the `Synthesizer` protocol in `api/kasa/tts.py` and pass it to `create_app` |
+| Swap the TTS model or backend | Implement the `Synthesizer` protocol and run with `KASA_VOICE=module:Class`; add a short name in `api/kasa/voices.py` once it is a regular option |
+| Ship a feature turned off | Add a `Flag` in `api/kasa/flags.py`, read `app.state.flags`, test both values |
+| Try an idea without touching the app | `make experiment NAME=...`, see `docs/experimentation.md` |
 | Add a story | New file `stories/<id>.json`: `{"id", "title", "language", "text"}` |
 
 ## Conventions
@@ -56,7 +66,9 @@ Without make: `cd api && python3 -m venv .venv && . .venv/bin/activate && pip in
 - Heavy imports (`torch`, `transformers`) stay inside functions so the API and tests start without them.
 - Language codes are ISO 639-3 (`aka`, `ewe`), and every story's `language` must be in `LANGUAGES` (a test checks this).
 - Story text uses the proper letters (ɛ, ɔ, ŋ, ƒ, ʋ), not look-alikes such as Greek ε, and is saved in Unicode NFC. Files are UTF-8. A test fails if a bundled story would change under `normalize_text`.
-- One test file per module: `test_api.py`, `test_tts.py`, `test_text.py`, `test_stories.py`.
+- One test file per module: `test_api.py`, `test_tts.py`, `test_text.py`, `test_stories.py`, `test_voices.py`, `test_flags.py`, `test_say.py`.
+- `kasa.app` builds its voice and flags at import, from `KASA_VOICE` and `KASA_FLAGS`. Tests pass `synth=` and `flags=` to `create_app` instead of setting env vars.
+- Never commit weights, datasets or generated audio; `experiments/*/output/` is ignored for that.
 - Branches: `claude/...` for agent work. Small PRs that reference the issue they close.
 
 ## Gotchas

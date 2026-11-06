@@ -20,6 +20,8 @@ make setup       # API + test deps, no model download
 make test        # tests use a fake synthesizer, so they need no download or GPU
 make setup-tts   # adds PyTorch and transformers for the real model
 make run         # serves http://localhost:8000
+make dev         # same, with an instant placeholder voice (no model needed)
+make say TEXT="Akwaaba" LANG=aka VOICE=mms,tone   # write WAVs to compare voices
 ```
 
 Without make:
@@ -33,6 +35,8 @@ uvicorn kasa.app:app --reload
 ```
 
 The first time you read a story in a language, the model (about 150 MB) downloads from Hugging Face, so that first request is slow.
+
+To try ideas quickly (swap voices, feature flags, experiment folders), see [docs/experimentation.md](docs/experimentation.md).
 
 ## API
 
