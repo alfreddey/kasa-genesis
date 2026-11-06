@@ -1,0 +1,52 @@
+# Runs the whole app: docker compose up --build, then open http://localhost:3000.
+# Settings come from .env (copy .env.example). See the README's "Run with Docker" section.
+#
+# The browser only talks to `web`; it forwards /api/v1 to `api` by service name.
+
+name: kasa
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+      args:
+        # false gives a small image without PyTorch, for KASA_VOICE=tone or silent.
+        INSTALL_TTS: ${INSTALL_TTS:-true}
+    image: kasa-api
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      STORIES_DIR: /app/stories
+      HF_HOME: /data/hf
+      CACHE_DIR: ${CACHE_DIR:-/data/audio}
+    volumes:
+      # Edit stories without rebuilding; restart the api service to reload them.
+      - ./stories:/app/stories:ro
+      # Hugging Face model files, downloaded once on first use.
+      - models:/data/hf
+      # Synthesized audio, so each story is narrated only once.
+      - audio:/data/audio
+    ports:
+      # Local only, for /docs and debugging. The public entry point is web.
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+
+  web:
+    build:
+      context: web
+      args:
+        NEXT_PUBLIC_API_URL: /
+        API_INTERNAL_URL: http://api:8000
+    image: kasa-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+
+volumes:
+  models:
+  audio:
