@@ -1,11 +1,11 @@
-# Weekly dependency updates. Minor and patch bumps are grouped into one PR per
+# Monthly dependency updates. Minor and patch bumps are grouped into one PR per
 # ecosystem so they are easy to review; major bumps come one at a time.
 version: 2
 updates:
   - package-ecosystem: pip
     directory: /api
     schedule:
-      interval: weekly
+      interval: monthly
     groups:
       python-minor:
         update-types: [minor, patch]
@@ -13,7 +13,7 @@ updates:
   - package-ecosystem: npm
     directory: /web
     schedule:
-      interval: weekly
+      interval: monthly
     groups:
       npm-minor:
         update-types: [minor, patch]
@@ -21,7 +21,7 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
     groups:
       actions:
         patterns: ["*"]
@@ -29,9 +29,9 @@ updates:
   - package-ecosystem: docker
     directory: /api
     schedule:
-      interval: weekly
+      interval: monthly
 
   - package-ecosystem: docker
     directory: /web
     schedule:
-      interval: weekly
+      interval: monthly

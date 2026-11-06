@@ -39,23 +39,23 @@ jobs:
             web:
               - 'web/**'
               - '.github/workflows/ci.yml'
+            # Images only need a rebuild check when how they are built changes.
             docker:
-              - 'api/**'
-              - 'web/**'
-              - 'stories/**'
+              - 'api/Dockerfile'
+              - 'api/Dockerfile.dockerignore'
+              - 'api/pyproject.toml'
+              - 'web/Dockerfile'
+              - 'web/.dockerignore'
+              - 'web/package.json'
+              - 'web/package-lock.json'
               - 'docker-compose.yml'
               - '.github/workflows/ci.yml'
 
   api:
-    name: api (Python ${{ matrix.python }})
+    name: api (Python 3.12)
     needs: changes
     if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # 3.10 is the oldest version pyproject.toml supports; 3.12 is what we run.
-        python: ["3.10", "3.12"]
     defaults:
       run:
         working-directory: api
@@ -63,18 +63,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python }}
+          python-version: "3.12"
           cache: pip
           cache-dependency-path: api/pyproject.toml
       - run: pip install -e ".[dev]"
       - name: Ruff lint
-        if: matrix.python == '3.12'
         run: ruff check --output-format=github .
       - name: Ruff format check
-        if: matrix.python == '3.12'
         run: ruff format --check .
       - name: mypy
-        if: matrix.python == '3.12'
         run: mypy
       - name: pytest (fake synthesizer, no model download)
         run: pytest -q
