@@ -1,12 +1,12 @@
 # Next.js web app. Build from the repo root with `docker compose build web`,
 # or alone with: docker build -t kasa-web web
 
-FROM node:22-alpine AS deps
+FROM node:25-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
-FROM node:22-alpine AS build
+FROM node:25-alpine AS build
 WORKDIR /app
 # Both are read at build time and baked into the bundle and server config.
 # "/" makes the browser call this same origin; the server forwards /api/v1 to API_INTERNAL_URL.
@@ -19,7 +19,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build && mkdir -p public
 
-FROM node:22-alpine AS runtime
+FROM node:25-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
