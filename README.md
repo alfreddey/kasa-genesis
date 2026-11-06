@@ -44,7 +44,7 @@ Then open http://localhost:3000. The first build downloads CPU-only PyTorch and 
 
 ## Local development
 
-Python 3.10 or newer is required. From the repo root (`make help` lists every target):
+Python 3.12 or newer is required. From the repo root (`make help` lists every target):
 
 ```bash
 make setup       # API + test deps, no model download
