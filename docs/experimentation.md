@@ -55,7 +55,7 @@ code, never weights, datasets or audio.
 
 ## Planned (issues)
 
-- Preview deploy for every pull request, so each change can be opened on a phone.
-- Experiment tracking for TTS fine-tuning runs (metrics, configs and audio samples).
-- A listening test page to compare voices blind and collect ratings from native speakers.
-- A `labs` area in the web app for throwaway UI prototypes, shown only when a flag is on.
+- #81 Preview deploy for every pull request, so each change can be opened on a phone.
+- #82 Experiment tracking for TTS fine-tuning runs (metrics, configs and audio samples).
+- #83 A listening test page to compare voices blind and collect ratings from native speakers.
+- #84 A `labs` area in the web app for throwaway UI prototypes, shown only when a flag is on.
