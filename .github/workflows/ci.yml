@@ -1,23 +1,168 @@
 name: CI
+
 on:
   push:
     branches: [main]
   pull_request:
+
+# A newer push to the same PR cancels the run still going for the old one.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
 jobs:
-  test:
+  # Works out which apps a PR touches, so a web-only change skips the API job
+  # and the other way round. Pushes to main always run everything.
+  changes:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      api: ${{ github.event_name == 'push' || steps.filter.outputs.api == 'true' }}
+      web: ${{ github.event_name == 'push' || steps.filter.outputs.web == 'true' }}
+      docker: ${{ github.event_name == 'push' || steps.filter.outputs.docker == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'api/**'
+              - 'stories/**'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
+            web:
+              - 'web/**'
+              - '.github/workflows/ci.yml'
+            docker:
+              - 'api/**'
+              - 'web/**'
+              - 'stories/**'
+              - 'docker-compose.yml'
+              - '.github/workflows/ci.yml'
+
+  api:
+    name: api (Python ${{ matrix.python }})
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.10 is the oldest version pyproject.toml supports; 3.12 is what we run.
+        python: ["3.10", "3.12"]
+    defaults:
+      run:
+        working-directory: api
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: api/pyproject.toml
       - run: pip install -e ".[dev]"
-        working-directory: api
-      - run: ruff check .
-        working-directory: api
-      - run: ruff format --check .
-        working-directory: api
-      - run: mypy
-        working-directory: api
-      - run: pytest -q
-        working-directory: api
+      - name: Ruff lint
+        if: matrix.python == '3.12'
+        run: ruff check --output-format=github .
+      - name: Ruff format check
+        if: matrix.python == '3.12'
+        run: ruff format --check .
+      - name: mypy
+        if: matrix.python == '3.12'
+        run: mypy
+      - name: pytest (fake synthesizer, no model download)
+        run: pytest -q
+
+  web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Lint (ESLint + Prettier)
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test (Vitest)
+        run: npm test
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+  # Builds both images to prove the Dockerfiles work. Nothing is pushed.
+  docker:
+    name: docker (${{ matrix.image }})
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: api
+            context: .
+            file: api/Dockerfile
+            # Skip PyTorch so the build stays fast; the TTS layer is not what CI guards.
+            build-args: INSTALL_TTS=false
+          - image: web
+            context: web
+            file: web/Dockerfile
+            build-args: |
+              NEXT_PUBLIC_API_URL=/
+              API_INTERNAL_URL=http://api:8000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          build-args: ${{ matrix.build-args }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  compose:
+    name: docker compose config
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config -q
+
+  # The one check to mark as required in branch protection. It passes when every
+  # job above passed or was skipped by the path filter, and fails otherwise.
+  ci-ok:
+    name: CI passed
+    if: always()
+    needs: [changes, api, web, docker, compose]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check job results
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Job results: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
+              echo "::error::A CI job finished with '$r'."
+              exit 1
+            fi
+          done

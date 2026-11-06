@@ -32,7 +32,8 @@ docs/                   Design notes and research. docs/experimentation.md: how 
                         docs/db-schema.md: the database design (#71). docs/adr/: decision records.
 experiments/            Dated experiment folders (write-up + code). _template/ is the starter.
 .env.example            Every setting the API reads (ALLOWED_ORIGINS, CACHE_DIR, KASA_VOICE, ...).
-.github/workflows/ci.yml  CI: installs api/, runs ruff, mypy and pytest.
+.github/workflows/ci.yml  CI: path-filtered api/ (ruff, mypy, pytest) and web/ (lint, typecheck, vitest, build) jobs, docker builds; "CI passed" is the required check.
+.github/dependabot.yml   Weekly pip, npm and GitHub Actions updates.
 .github/                PR template and issue forms (bug, feature, submit a story, new language).
 CONTRIBUTING.md         Branches, Conventional Commits, tests, adding stories/languages, PR process.
 LICENSE                 Code is proprietary (all rights reserved); models and data keep their own licences.
