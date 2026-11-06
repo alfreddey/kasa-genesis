@@ -8,7 +8,7 @@ Closes #
 
 ## How I tested it
 
-- [ ] `make test` passes
+- [ ] `make lint` and `make test` pass (plus `npm run lint && npm run typecheck && npm test` in `web/` if touched)
 - [ ] Tried it in the app (`make dev` or `make run`), if it changes behaviour
 
 ## Checklist

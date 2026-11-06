@@ -1,72 +1,169 @@
-"""HTTP API and web page. Run with: uvicorn kasa.app:app --reload"""
+"""HTTP API and the temporary web page. Run with: uvicorn kasa.app:app --reload
 
+The contract the web app codes against is under /api/v1 and is described in api/API.md
+and in the OpenAPI schema (GET /openapi.json, interactive docs at /docs).
+"""
+
+from __future__ import annotations
+
+import json
 from pathlib import Path
+from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
-from pydantic import BaseModel, Field
 
+from . import schemas
+from .cache import Speaker, make_cache
+from .config import Settings
+from .flags import parse_flags
 from .languages import LANGUAGES
 from .stories import load_stories
-from .flags import parse_flags
-from .tts import Synthesizer, read_aloud
+from .tts import Synthesizer
 from .voices import load_synthesizer
 
 STATIC = Path(__file__).resolve().parent / "static"
-MAX_TEXT_CHARS = 5000
+API_PREFIX = "/api/v1"
+
+WAV_RESPONSE: dict[int | str, dict[str, Any]] = {
+    200: {
+        "content": {"audio/wav": {"schema": {"type": "string", "format": "binary"}}},
+        "description": "Mono 16-bit PCM WAV.",
+    },
+    304: {"description": "Not modified: the If-None-Match ETag still matches."},
+}
 
 
-class SpeakRequest(BaseModel):
-    text: str = Field(min_length=1, max_length=MAX_TEXT_CHARS)
-    language: str
+def error(*codes: int) -> dict[int | str, dict[str, Any]]:
+    return {code: {"model": schemas.ErrorResponse} for code in codes}
+
+
+def _voice_id(settings: Settings, synth: Synthesizer | None) -> str:
+    """Names the voice in audio cache keys, so changing voice or model never serves old audio."""
+    if synth is not None:
+        cls = type(synth)
+        return getattr(synth, "cache_id", None) or f"{cls.__module__}.{cls.__qualname__}"
+    return f"{settings.kasa_voice}:{json.dumps(settings.tts_models, sort_keys=True)}"
+
+
+def _wav(request: Request, audio: bytes, key: str) -> Response:
+    etag = f'"{key}"'
+    headers = {"ETag": etag, "Cache-Control": "public, max-age=3600"}
+    if etag in request.headers.get("if-none-match", ""):
+        return Response(status_code=304, headers=headers)
+    return Response(audio, media_type="audio/wav", headers=headers)
 
 
 def create_app(
     synth: Synthesizer | None = None,
-    stories: dict | None = None,
+    stories: dict[str, dict[str, Any]] | None = None,
     flags: dict[str, bool] | None = None,
+    settings: Settings | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="Kasa Genesis")
-    # The voice comes from KASA_VOICE (kasa/voices.py) unless a test passes one in.
-    app.state.synth = synth or load_synthesizer()
-    app.state.flags = parse_flags() if flags is None else flags
-    app.state.stories = load_stories() if stories is None else stories
+    """Build the app. Tests pass `synth`, `stories`, `flags` or `settings` to skip the env."""
+    settings = Settings() if settings is None else settings
+    app = FastAPI(
+        title="Kasa Genesis API",
+        version="1.0.0",
+        description="Stories in Ghanaian languages, read aloud. See api/API.md.",
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.allowed_origins,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type", "If-None-Match"],
+        expose_headers=["ETag"],
+    )
+    voice_id = _voice_id(settings, synth)
+    # The voice is built here but the real model only loads on the first synthesis,
+    # so startup and /healthz stay fast.
+    app.state.synth = synth or load_synthesizer(settings.kasa_voice, settings.tts_models)
+    app.state.speaker = Speaker(
+        app.state.synth, make_cache(settings.cache_dir, settings.cache_max_items), voice_id
+    )
+    app.state.flags = parse_flags(settings.kasa_flags) if flags is None else flags
+    app.state.stories = load_stories(settings.stories_dir) if stories is None else stories
+    app.state.settings = settings
+
+    def get_story(story_id: str) -> dict[str, Any]:
+        story = app.state.stories.get(story_id)
+        if story is None:
+            raise HTTPException(404, "Story not found")
+        return story  # type: ignore[no-any-return]
+
+    def check_language(code: str) -> None:
+        if code not in LANGUAGES:
+            raise HTTPException(400, f"Unsupported language: {code}")
+
+    def speak(request: Request, text: str, language: str) -> Response:
+        check_language(language)
+        try:
+            audio, key = app.state.speaker.speak(text, language)
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
+        return _wav(request, audio, key)
 
     @app.get("/", include_in_schema=False)
-    def index():
+    def index() -> FileResponse:
         return FileResponse(STATIC / "index.html")
 
-    @app.get("/api/languages")
-    def languages():
-        return [{"code": l.code, "name": l.name} for l in LANGUAGES.values()]
+    @app.get("/healthz", response_model=schemas.Health, tags=["ops"])
+    def healthz() -> schemas.Health:
+        """Liveness check for Docker and load balancers. Never loads the speech model."""
+        return schemas.Health(status="ok")
 
-    @app.get("/api/flags")
-    def flags_list():
-        return app.state.flags
+    v1 = APIRouter(prefix=API_PREFIX, tags=["v1"])
 
-    @app.get("/api/stories")
-    def stories_list():
+    @v1.get("/languages", response_model=list[schemas.Language])
+    def languages() -> list[schemas.Language]:
+        """Languages the API can read aloud."""
+        return [schemas.Language(code=lang.code, name=lang.name) for lang in LANGUAGES.values()]
+
+    @v1.get("/flags", response_model=dict[str, bool])
+    def flags_list() -> dict[str, bool]:
+        """Every feature flag and whether it is on. See api/kasa/flags.py."""
+        return dict(app.state.flags)
+
+    @v1.get("/stories", response_model=list[schemas.StorySummary], responses=error(400))
+    def stories_list(
+        language: str | None = Query(None, description="Only stories in this language code."),
+    ) -> list[schemas.StorySummary]:
+        """All stories, sorted by id, optionally filtered by language."""
+        if language is not None:
+            check_language(language)
         return [
-            {"id": s["id"], "title": s["title"], "language": s["language"]}
-            for s in app.state.stories.values()
+            schemas.StorySummary(id=s["id"], title=s["title"], language=s["language"])
+            for s in sorted(app.state.stories.values(), key=lambda s: s["id"])
+            if language is None or s["language"] == language
         ]
 
-    @app.get("/api/stories/{story_id}")
-    def story(story_id: str):
-        if story_id not in app.state.stories:
-            raise HTTPException(404, "Story not found")
-        return app.state.stories[story_id]
+    @v1.get("/stories/{story_id}", response_model=schemas.Story, responses=error(404))
+    def story(story_id: str) -> schemas.Story:
+        """One story with its full text."""
+        s = get_story(story_id)
+        return schemas.Story(id=s["id"], title=s["title"], language=s["language"], text=s["text"])
 
-    @app.post("/api/speak", responses={200: {"content": {"audio/wav": {}}}})
-    def speak(req: SpeakRequest):
-        if req.language not in LANGUAGES:
-            raise HTTPException(400, f"Unsupported language: {req.language}")
-        try:
-            wav = read_aloud(app.state.synth, req.text, req.language)
-        except ValueError as e:
-            raise HTTPException(400, str(e))
-        return Response(wav, media_type="audio/wav")
+    @v1.get(
+        "/stories/{story_id}/audio",
+        response_class=Response,
+        responses={**WAV_RESPONSE, **error(400, 404)},
+    )
+    def story_audio(story_id: str, request: Request) -> Response:
+        """The whole story read aloud, as WAV. Usable directly as an <audio> src.
 
+        Generated on the first request (this can take a while with a real model), then
+        served from the cache.
+        """
+        s = get_story(story_id)
+        return speak(request, s["text"], s["language"])
+
+    @v1.post("/tts", response_class=Response, responses={**WAV_RESPONSE, **error(400)})
+    def tts(req: schemas.TtsRequest, request: Request) -> Response:
+        """Read any text aloud, as WAV. Cached like story audio."""
+        return speak(request, req.text, req.language)
+
+    app.include_router(v1)
     return app
 
 

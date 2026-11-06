@@ -54,10 +54,10 @@ Types: `feat`, `fix`, `docs`, `content`, `test`, `refactor`, `perf`, `chore`, `c
 
 | App | Tests | Lint |
 | --- | --- | --- |
-| `api/` | `make test` (pytest, uses a fake synthesizer so no model or GPU is needed) | Not set up yet; ruff is planned in #6 and #40 |
+| `api/` | `make test` (pytest, uses a fake synthesizer so no model or GPU is needed) | `make lint` (ruff check, ruff format check, mypy) |
 | `web/` | `npm test` (Vitest, network mocked), `npm run typecheck`, `npm run build` | `npm run lint` (ESLint + Prettier check; fix with `npm run format`) |
 
-Run the `web/` commands from inside `web/` (see [web/AGENTS.md](web/AGENTS.md)). CI currently runs the API tests on every pull request ([ci.yml](.github/workflows/ci.yml)). Full CI with lint, type checks and Docker builds is tracked in #6. This table will be updated as those land.
+Run the `web/` commands from inside `web/` (see [web/AGENTS.md](web/AGENTS.md)). CI runs the API's ruff, mypy and pytest on every pull request ([ci.yml](.github/workflows/ci.yml)); web checks and Docker builds in CI are tracked in #6. If you change an API route, run `make openapi` and update [api/API.md](api/API.md) in the same PR.
 
 Test rules that save review time:
 
@@ -99,7 +99,7 @@ Use the "New language" issue template to propose one first, especially if you ca
 
 1. Keep it small and about one issue. Docs and tests go in the same PR as the change.
 2. Fill in the [pull request template](.github/pull_request_template.md): what changed, why, how you tested it, and `Closes #N`.
-3. Make sure `make test` passes and CI is green.
+3. Make sure `make lint` and `make test` pass (and the `web/` checks if you touched it), and CI is green.
 4. If you change the layout, commands or conventions, update `AGENTS.md` (and this guide or the README) in the same PR.
 5. Request a review from the owner (@alfreddey). Address comments with new commits rather than force-pushing, so the review history stays readable.
 6. The owner merges with squash, so the PR title becomes the commit on `main`: write it as a Conventional Commit.

@@ -10,10 +10,14 @@ Kasa Genesis is a web app that reads stories written in Ghanaian languages (Twi/
 
 ```
 api/                    Python API (FastAPI). Has its own AGENTS.md.
-  kasa/app.py           All HTTP routes. create_app(synth=, stories=) is the factory.
+  API.md                The /api/v1 contract for the web app. openapi.json is the generated copy.
+  kasa/app.py           All HTTP routes (/api/v1, /healthz). create_app(synth=, stories=, settings=).
+  kasa/schemas.py       Pydantic request/response models of the contract.
+  kasa/config.py        Settings from env / .env via pydantic-settings.
+  kasa/cache.py         Audio cache (memory or CACHE_DIR) and the Speaker that uses it.
   kasa/tts.py           Synthesizer protocol, sentence splitting, WAV encoding, MmsSynthesizer.
   kasa/voices.py        Picks the voice from KASA_VOICE: mms, tone, silent, or "module:attribute".
-  kasa/flags.py         Feature flags (FLAGS registry, KASA_FLAGS env var, GET /api/flags).
+  kasa/flags.py         Feature flags (FLAGS registry, KASA_FLAGS env var, GET /api/v1/flags).
   kasa/say.py           CLI: python -m kasa.say writes one WAV per voice to compare them.
   kasa/text.py          normalize_text(): NFC, look-alike letters (Greek ε -> ɛ), spacing. Shared by training and inference.
   kasa/languages.py     LANGUAGES registry: code -> name + Hugging Face model id.
@@ -25,9 +29,10 @@ web/                    Next.js 15 frontend (story list + player). Has its own A
 stories/                Story content as JSON, shared by api/ and web/.
 docs/                   Design notes and research. docs/experimentation.md: how to try ideas fast.
                         docs/content-guide.md: story fields, spelling rules, rights, review checklist.
+                        docs/db-schema.md: the database design (#71). docs/adr/: decision records.
 experiments/            Dated experiment folders (write-up + code). _template/ is the starter.
-.env.example            Settings the API reads: KASA_VOICE, KASA_FLAGS, STORIES_DIR.
-.github/workflows/ci.yml  CI: installs api/ and runs pytest.
+.env.example            Every setting the API reads (ALLOWED_ORIGINS, CACHE_DIR, KASA_VOICE, ...).
+.github/workflows/ci.yml  CI: installs api/, runs ruff, mypy and pytest.
 .github/                PR template and issue forms (bug, feature, submit a story, new language).
 CONTRIBUTING.md         Branches, Conventional Commits, tests, adding stories/languages, PR process.
 LICENSE                 Code is proprietary (all rights reserved); models and data keep their own licences.

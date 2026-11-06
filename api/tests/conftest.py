@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from kasa.app import create_app
+from kasa.config import Settings
 
 
 class FakeSynth:
@@ -17,6 +18,11 @@ class FakeSynth:
         return [0.1] * 1600, 16000  # 0.1 s of audio per chunk
 
 
+def make_settings(**overrides):
+    """Settings that ignore the developer's environment and .env file."""
+    return Settings(_env_file=None, **overrides)
+
+
 @pytest.fixture
 def synth():
     return FakeSynth()
@@ -24,4 +30,4 @@ def synth():
 
 @pytest.fixture
 def client(synth):
-    return TestClient(create_app(synth=synth))
+    return TestClient(create_app(synth=synth, settings=make_settings()))

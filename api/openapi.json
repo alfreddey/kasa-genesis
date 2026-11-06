@@ -1,0 +1,543 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Kasa Genesis API",
+    "description": "Stories in Ghanaian languages, read aloud. See api/API.md.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/healthz": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Healthz",
+        "description": "Liveness check for Docker and load balancers. Never loads the speech model.",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/languages": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Languages",
+        "description": "Languages the API can read aloud.",
+        "operationId": "languages_api_v1_languages_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Language"
+                  },
+                  "type": "array",
+                  "title": "Response Languages Api V1 Languages Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/flags": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Flags List",
+        "description": "Every feature flag and whether it is on. See api/kasa/flags.py.",
+        "operationId": "flags_list_api_v1_flags_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "type": "object",
+                  "title": "Response Flags List Api V1 Flags Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/stories": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Stories List",
+        "description": "All stories, sorted by id, optionally filtered by language.",
+        "operationId": "stories_list_api_v1_stories_get",
+        "parameters": [
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only stories in this language code.",
+              "title": "Language"
+            },
+            "description": "Only stories in this language code."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StorySummary"
+                  },
+                  "title": "Response Stories List Api V1 Stories Get"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/stories/{story_id}": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Story",
+        "description": "One story with its full text.",
+        "operationId": "story_api_v1_stories__story_id__get",
+        "parameters": [
+          {
+            "name": "story_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Story Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Story"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/stories/{story_id}/audio": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Story Audio",
+        "description": "The whole story read aloud, as WAV. Usable directly as an <audio> src.\n\nGenerated on the first request (this can take a while with a real model), then\nserved from the cache.",
+        "operationId": "story_audio_api_v1_stories__story_id__audio_get",
+        "parameters": [
+          {
+            "name": "story_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Story Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mono 16-bit PCM WAV.",
+            "content": {
+              "audio/wav": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified: the If-None-Match ETag still matches."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tts": {
+      "post": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Tts",
+        "description": "Read any text aloud, as WAV. Cached like story audio.",
+        "operationId": "tts_api_v1_tts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TtsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Mono 16-bit PCM WAV.",
+            "content": {
+              "audio/wav": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified: the If-None-Match ETag still matches."
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorResponse": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "examples": [
+              "Story not found"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorResponse",
+        "description": "Body of every 4xx error the API raises itself (FastAPI's 422 has a list instead)."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Health": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "examples": [
+              "ok"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "Health"
+      },
+      "Language": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "ISO 639-3 code, used everywhere else in the API.",
+            "examples": [
+              "aka"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name to show people.",
+            "examples": [
+              "Twi (Akan)"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name"
+        ],
+        "title": "Language"
+      },
+      "Story": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "examples": [
+              "twi-greetings"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "examples": [
+              "Nkyia (Greetings)"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "description": "Language code, see GET /api/v1/languages.",
+            "examples": [
+              "aka"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "The full story. Paragraphs are separated by blank lines."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "language",
+          "text"
+        ],
+        "title": "Story"
+      },
+      "StorySummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "examples": [
+              "twi-greetings"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "examples": [
+              "Nkyia (Greetings)"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "description": "Language code, see GET /api/v1/languages.",
+            "examples": [
+              "aka"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "language"
+        ],
+        "title": "StorySummary",
+        "description": "What the library list needs, without the full text."
+      },
+      "TtsRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Text",
+            "description": "Text to read aloud."
+          },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "description": "Language code, see GET /api/v1/languages."
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "language"
+        ],
+        "title": "TtsRequest",
+        "examples": [
+          {
+            "language": "aka",
+            "text": "Akwaaba!"
+          }
+        ]
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

@@ -46,6 +46,8 @@ make setup-tts   # adds PyTorch and transformers for the real model
 make run         # serves http://localhost:8000
 make dev         # same, with an instant placeholder voice (no model needed)
 make say TEXT="Akwaaba" LANG=aka VOICE=mms,tone   # write WAVs to compare voices
+make lint                                          # ruff + mypy on the API
+make openapi                                       # refresh api/openapi.json after changing the API
 make experiment NAME=2026_11_topic                 # start a dated experiment folder
 ```
 
@@ -61,7 +63,7 @@ uvicorn kasa.app:app --reload
 
 The first time you read a story in a language, the model (about 150 MB) downloads from Hugging Face, so that first request is slow.
 
-Settings the API reads are listed in [.env.example](.env.example): `KASA_VOICE`, `KASA_FLAGS` and `STORIES_DIR`.
+Settings the API reads are listed in [.env.example](.env.example): `KASA_VOICE`, `KASA_FLAGS`, `ALLOWED_ORIGINS` (default `http://localhost:3000`), `CACHE_DIR` and `STORIES_DIR`.
 
 The web app needs Node.js 20 or newer. In a second terminal, with the API running:
 
@@ -72,7 +74,7 @@ npm ci
 npm run dev                  # http://localhost:3000
 ```
 
-The web app calls the `/api/v1` routes, which arrive with #4; until that merges it shows "Could not reach the server". Commands and conventions for `web/` are in [web/AGENTS.md](web/AGENTS.md).
+If the page says "Could not reach the server", check that the API is running and that `ALLOWED_ORIGINS` includes `http://localhost:3000`. Commands and conventions for `web/` are in [web/AGENTS.md](web/AGENTS.md).
 
 ## Experimenting
 
@@ -88,11 +90,12 @@ The full guide is [docs/experimentation.md](docs/experimentation.md).
 
 ## API
 
-- `GET /api/languages` lists supported languages.
-- `GET /api/stories` lists bundled stories; `GET /api/stories/{id}` returns one.
-- `POST /api/speak` with `{"text": "Akwaaba.", "language": "aka"}` returns a WAV file.
+The web app talks to the API under `/api/v1`. The full contract is in [api/API.md](api/API.md), with interactive docs at http://localhost:8000/docs while the API runs.
 
-These routes are moving under `/api/v1` (for example `POST /api/v1/tts` replaces `POST /api/speak`), with interactive docs at `/docs`, in #4. This section will point to `api/API.md` once that lands.
+- `GET /api/v1/languages` lists supported languages.
+- `GET /api/v1/stories` lists stories (`?language=aka` filters); `GET /api/v1/stories/{id}` returns one, and `GET /api/v1/stories/{id}/audio` returns it as a WAV.
+- `POST /api/v1/tts` with `{"text": "Akwaaba.", "language": "aka"}` returns a WAV for any text.
+- `GET /api/v1/flags` lists feature flags; `GET /healthz` is the health check.
 
 ## Adding stories
 

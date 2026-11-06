@@ -13,5 +13,11 @@ jobs:
           python-version: "3.12"
       - run: pip install -e ".[dev]"
         working-directory: api
+      - run: ruff check .
+        working-directory: api
+      - run: ruff format --check .
+        working-directory: api
+      - run: mypy
+        working-directory: api
       - run: pytest -q
         working-directory: api
