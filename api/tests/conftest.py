@@ -1,5 +1,7 @@
 """Shared fixtures. FakeSynth replaces the real MMS model, so no test downloads anything."""
 
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -31,3 +33,20 @@ def synth():
 @pytest.fixture
 def client(synth):
     return TestClient(create_app(synth=synth, settings=make_settings()))
+
+
+# --- test types --------------------------------------------------------------------
+# unit (default) needs nothing; integration and model tests are opt-in with an env var.
+OPT_IN = {"integration": "KASA_TEST_INTEGRATION", "model": "KASA_TEST_MODEL"}
+
+
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        kinds = [k for k in OPT_IN if k in item.keywords]
+        if not kinds:
+            item.add_marker(pytest.mark.unit)
+        for kind in kinds:
+            if os.environ.get(OPT_IN[kind]) != "1":
+                item.add_marker(
+                    pytest.mark.skip(reason=f"set {OPT_IN[kind]}=1 to run {kind} tests")
+                )

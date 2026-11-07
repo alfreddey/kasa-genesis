@@ -74,8 +74,11 @@ jobs:
         run: ruff format --check .
       - name: mypy
         run: mypy
-      - name: pytest (fake synthesizer, no model download)
-        run: pytest -q
+      - name: pytest with coverage (fake synthesizer, no model download)
+        run: pytest -q --cov --cov-report=term-missing:skip-covered --cov-report=markdown:coverage.md
+      - name: Show coverage on the run summary
+        if: always()
+        run: test -f coverage.md && cat coverage.md >> "$GITHUB_STEP_SUMMARY" || true
 
   web:
     name: Web - lint, types, tests, build
