@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mockApi } from "@/test/fetch";
-import { ApiError, apiUrl, fetchStories, fetchStory, storyAudioUrl } from "./api";
+import { ApiError, apiFetch, apiUrl, fetchStories, fetchStory, storyAudioUrl } from "./api";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -53,5 +53,31 @@ describe("apiFetch", () => {
   it("reports a slow server as a timeout", async () => {
     mockApi({ "/stories": { throws: new DOMException("timed out", "TimeoutError") } });
     await expect(fetchStories()).rejects.toThrow("taking too long");
+  });
+});
+
+describe("friendly error messages", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("tells the reader how long to wait when rate limited", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("{}", { status: 429, headers: { "Retry-After": "7" } })),
+    );
+    await expect(apiFetch("/stories")).rejects.toMatchObject({
+      status: 429,
+      message: "Too many requests. Please wait 7 seconds and try again.",
+    });
+  });
+
+  it("hides server error details", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response('{"detail":"boom: stack"}', { status: 503 })),
+    );
+    await expect(apiFetch("/stories")).rejects.toMatchObject({
+      status: 503,
+      message: "The server had a problem. Please try again in a moment.",
+    });
   });
 });
