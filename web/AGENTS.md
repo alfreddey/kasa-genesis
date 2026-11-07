@@ -14,10 +14,13 @@ src/app/                    Routes (App Router). Pages stay thin and render a co
   page.tsx                  "/" -> <StoryList />.
   stories/[id]/page.tsx     "/stories/:id" -> <StoryPlayer id=... />.
   not-found.tsx             404 page.
+  error.tsx, global-error.tsx  Error boundaries (page crash / root layout crash), "Try again".
   globals.css               All styles today (placeholder tokens in :root).
 src/components/             UI. One component per file, kebab-case names, test next to it.
   story-list.tsx            Fetches languages + stories, language filter, links.
   story-player.tsx          Fetches one story, <audio> pointed at its audio URL, text.
+  offline-banner.tsx        Shown in the layout when the browser goes offline.
+  error-view.tsx            Friendly crash fallback used by error.tsx.
   status.tsx                <Loading> and <ErrorState> (with retry). Use these for every async state.
 src/lib/
   api.ts                    Typed API client: types, apiFetch, fetchStories/fetchStory/fetchLanguages, storyAudioUrl, ApiError.

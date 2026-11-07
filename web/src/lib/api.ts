@@ -48,9 +48,21 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     );
   }
   if (!res.ok) {
-    throw new ApiError(await errorDetail(res), res.status);
+    throw new ApiError(friendlyMessage(res, await errorDetail(res)), res.status);
   }
   return (await res.json()) as T;
+}
+
+/** Rate limits and server faults get a plain message the reader can act on. */
+function friendlyMessage(res: Response, detail: string): string {
+  if (res.status === 429) {
+    const seconds = Number(res.headers.get("Retry-After"));
+    return Number.isFinite(seconds) && seconds > 0
+      ? `Too many requests. Please wait ${Math.ceil(seconds)} seconds and try again.`
+      : "Too many requests. Please wait a moment and try again.";
+  }
+  if (res.status >= 500) return "The server had a problem. Please try again in a moment.";
+  return detail;
 }
 
 /** The API sends errors as {"detail": string}; fall back to the status text otherwise. */
