@@ -1,6 +1,8 @@
 # web/AGENTS.md
 
-Guide for coding agents working in `web/`, the Next.js frontend. `CLAUDE.md` here imports this file. The root `AGENTS.md` covers the whole repo; this one covers only `web/`. Keep it current when you change the layout, commands or conventions.
+Guide for coding agents working in `web/`, the Next.js frontend. `CLAUDE.md` here imports this file. The root `AGENTS.md` covers the whole repo; this one covers only `web/`.
+
+**Keeping this file current:** a PR that changes layout, commands, env vars or conventions updates the matching `AGENTS.md` in the same PR. CI runs `scripts/check_docs.py`, which fails on a mentioned path, `make` target or setting that no longer exists.
 
 ## What this is
 

@@ -2,6 +2,8 @@
 
 The FastAPI service. The root `AGENTS.md` has the repo-wide map and commands; this file covers what is specific to `api/`.
 
+**Keeping this file current:** a PR that changes layout, commands, env vars or conventions updates the matching `AGENTS.md` in the same PR. CI runs `scripts/check_docs.py`, which fails on a mentioned path, `make` target or setting that no longer exists.
+
 ## Request flow
 
 `POST /api/v1/tts {"text", "language"}` and `GET /api/v1/stories/{id}/audio` both go through `app.speak` → validates the language against `LANGUAGES` → `cache.Speaker.speak` looks up the cache key (SHA-256 of `AUDIO_VERSION`, voice id, language, normalized text) and returns cached WAV bytes if present → otherwise `tts.read_aloud` cleans the text with `text.normalize_text` (NFC, look-alike letters, spacing) → splits it into sentences of at most 300 characters (`split_sentences`) and drops chunks that are only punctuation → calls `synth.synthesize(chunk, language)` for each → joins them as 16-bit PCM with 0.35 s pauses (every chunk must use the same sample rate) → `encode_wav` returns mono WAV bytes, which are stored in the cache. Responses carry the cache key as an `ETag`.
@@ -12,7 +14,7 @@ Why the normalizer matters: TTS tokenizers silently drop characters outside thei
 
 ## Settings and voices
 
-`create_app` builds a `config.Settings` (pydantic-settings: env vars, then `.env` at the repo root or current folder). The voice is `voices.load_synthesizer(settings.kasa_voice, settings.tts_models)` (default `mms`). `tone` and `silent` are model-free placeholders for UI work and load tests. `MmsSynthesizer` loads one `VitsModel` per language on first use and caches it, guarded by a lock, so startup and `/healthz` never load a model.
+`create_app` builds a `config.Settings` (pydantic-settings: env vars, then `.env` at the repo root or current folder). The voice is `voices.load_synthesizer(settings.kasa_voice, settings.tts_models)` (default `mms`; `TTS_MODELS` overrides the model per language). `tone` and `silent` are model-free placeholders for UI work and load tests. `MmsSynthesizer` loads one `VitsModel` per language on first use and caches it, guarded by a lock, so startup and `/healthz` never load a model.
 
 The audio cache is `DiskAudioCache(CACHE_DIR)` when set, otherwise `MemoryAudioCache(CACHE_MAX_ITEMS)`. Bump `cache.AUDIO_VERSION` when a change to `tts.py` should invalidate cached audio.
 

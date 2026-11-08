@@ -4,7 +4,7 @@
 VENV := api/.venv
 PY := $(VENV)/bin/python
 
-.PHONY: help setup setup-tts test lint openapi run dev say experiment clean
+.PHONY: help setup setup-tts test lint check-docs openapi run dev say experiment clean
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
@@ -23,6 +23,9 @@ test: ## Run the API tests (fake synthesizer, no download)
 
 lint: ## Ruff (lint + format check) and mypy on the API
 	cd api && .venv/bin/ruff check . && .venv/bin/ruff format --check . && .venv/bin/mypy
+
+check-docs: ## Check that paths, make targets and settings named in the docs exist
+	python3 scripts/check_docs.py
 
 openapi: ## Refresh api/openapi.json after changing the API contract
 	cd api && .venv/bin/python -m kasa.openapi > openapi.json
