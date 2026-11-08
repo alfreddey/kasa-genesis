@@ -972,3 +972,205 @@ audio {
     transform: none;
   }
 }
+
+/* ---------- Pages inside the app shell (Library, Saved, Parents, player) ---------- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.page-header,
+.page-controls,
+.page-body {
+  padding: 0 var(--spacing-xl);
+}
+.page-header h1 {
+  margin: 0;
+  font-size: var(--text-heading-lg);
+  line-height: 1.1;
+  color: var(--color-text-primary);
+}
+.page-header p {
+  margin: 4px 0 0;
+  font-size: var(--text-label-md);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.page-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+.search {
+  display: block;
+  border-radius: var(--radius-lg);
+}
+.search input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 var(--spacing-lg);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 600;
+}
+.search input:focus-visible,
+.heart-button:focus-visible,
+.switch input:focus-visible {
+  outline: 3px solid var(--color-brand-primary);
+  outline-offset: 2px;
+}
+.story-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-lg);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.story-grid .story-card,
+.story-grid .story-card .cover {
+  width: 100%;
+}
+.story-grid .story-card .cover {
+  height: auto;
+  aspect-ratio: 1;
+}
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-xl);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+.empty p {
+  margin: 0;
+}
+.button,
+.back-link,
+.next-story {
+  color: var(--color-text-primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+.button {
+  padding: 12px 22px;
+  border-radius: var(--radius-md);
+  background: var(--color-brand-primary);
+  color: var(--color-text-on-brand);
+}
+.back-link {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+}
+.page-body > .back-link {
+  margin-bottom: var(--spacing-lg);
+}
+
+.player {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: 0 var(--spacing-xl);
+}
+.player-cover .cover {
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-xl);
+}
+.player-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-xl);
+  color: var(--color-text-primary);
+}
+.player-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+.player-heading h1 {
+  margin: 0;
+  font-size: var(--text-heading-md);
+  line-height: 1.2;
+}
+.heart-button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 26px;
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.heart-button svg {
+  width: 28px;
+  height: 28px;
+}
+.heart-button[aria-pressed="true"] svg {
+  fill: var(--color-brand-primary);
+  stroke: var(--color-brand-primary);
+}
+.switch {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-height: 48px;
+  font-weight: 700;
+}
+.switch input {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--color-brand-primary);
+}
+.next-story {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-radius: var(--radius-xl);
+}
+.next-kicker {
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+}
+
+@media (min-width: 768px) {
+  .page-header,
+  .page-controls,
+  .page-body,
+  .player {
+    padding-inline: 0;
+  }
+  .page-controls {
+    flex-direction: row;
+    align-items: center;
+  }
+  .search {
+    flex: 1;
+  }
+  .story-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .player {
+    max-width: 760px;
+  }
+}
+@media (min-width: 1200px) {
+  .story-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}

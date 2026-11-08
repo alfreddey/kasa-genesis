@@ -54,17 +54,15 @@ it("filters by language with the tiles", async () => {
   expect(screen.queryByRole("list", { name: "New stories" })).not.toBeInTheDocument();
 });
 
-it("marks Home as the current tab and leaves unfinished tabs inert", async () => {
+it("marks Home as the current tab and links every tab to its page", async () => {
   mockApi({ "/languages": languages, "/stories": { body: [twi] } });
   render(<Home />);
 
   const nav = screen.getByRole("navigation", { name: "Main" });
   expect(within(nav).getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
   expect(within(nav).getByRole("link", { name: "Library" })).toHaveAttribute("href", "/library");
-  expect(within(nav).getByRole("button", { name: "Saved" })).toHaveAttribute(
-    "aria-disabled",
-    "true",
-  );
+  expect(within(nav).getByRole("link", { name: "Saved" })).toHaveAttribute("href", "/saved");
+  expect(within(nav).getByRole("link", { name: "Parents" })).toHaveAttribute("href", "/parents");
   await screen.findByRole("link", { name: /Twi greetings/ });
 });
 

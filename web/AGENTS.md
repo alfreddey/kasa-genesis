@@ -6,7 +6,7 @@ Guide for coding agents working in `web/`, the Next.js frontend. `CLAUDE.md` her
 
 ## What this is
 
-A Next.js 15 app (App Router, React 19, TypeScript strict) that talks to the FastAPI service in `api/` over its `/api/v1` HTTP contract (issue #4). It has a Home page, a story list (library) and a story player. Styling follows the Figma design system "Kasa Genesis Design System" (#80, #41-#47): tokens live in `globals.css`.
+A Next.js 15 app (App Router, React 19, TypeScript strict) that talks to the FastAPI service in `api/` over its `/api/v1` HTTP contract (issue #4). It has Home, Library, Saved, Parents and a story player, all inside one shared shell (backdrop + glass tab bar) so every page links to the others. Styling follows the Figma design system "Kasa Genesis Design System" (#80, #41-#47): tokens live in `globals.css`.
 
 ## Code map
 
@@ -14,7 +14,9 @@ A Next.js 15 app (App Router, React 19, TypeScript strict) that talks to the Fas
 src/app/                    Routes (App Router). Pages stay thin and render a component.
   layout.tsx                <html>, Nunito font, global CSS, offline banner.
   page.tsx                  "/" -> <Home />.
-  library/page.tsx          "/library" -> <StoryList /> (the plain story list, until the Library design lands).
+  library/page.tsx          "/library" -> <Library />.
+  saved/page.tsx            "/saved" -> <Saved /> (hearted stories).
+  parents/page.tsx          "/parents" -> <Parents /> (coming-soon placeholder until accounts, #parents).
   stories/[id]/page.tsx     "/stories/:id" -> <StoryPlayer id=... />.
   not-found.tsx             404 page.
   robots.ts, sitemap.ts     robots.txt and sitemap.xml (sitemap built from the live API).
@@ -23,16 +25,23 @@ src/app/                    Routes (App Router). Pages stay thin and render a co
 src/components/             UI. One component per file, kebab-case names, test next to it.
   home.tsx                  Home: greeting, language tiles, story of the day, shelf. Fetches languages + stories.
   cover-art.tsx             Placeholder cover (sun and hills) colored from the story id.
-  tab-bar.tsx               Glass navigation (bottom bar, side rail from tablet width); only the current tab's icon is highlighted.
+  app-shell.tsx             Shared page frame: savanna backdrop, content column, <TabBar>. Every app page renders inside it.
+  tab-bar.tsx               Glass navigation (bottom bar, side rail from tablet width): Home, Library, Saved, Parents; only the current tab's icon is highlighted.
+  library.tsx               Library: search, language filter, big cover grid.
+  saved.tsx                 Saved stories (from favorites in localStorage).
+  parents.tsx               Parents placeholder.
+  story-card.tsx            Cover card linking to a story; storyHref(). story-grid.tsx lays cards out (2/3/5 columns).
+  language-filter.tsx       Glass segmented language control.
   icons.tsx                 Inline SVG icons (currentColor).
-  plain-page.tsx            Site header + narrow column for pages that are not Home.
-  story-list.tsx            Fetches languages + stories, language filter, links (served at /library).
-  story-player.tsx          Fetches one story, <audio> pointed at its audio URL, text.
+  plain-page.tsx            Site header + narrow column for the error and 404 pages.
+  story-player.tsx          Player page: cover, <audio>, heart (save), "Show the words" switch (listening is the default), next story link.
   offline-banner.tsx        Shown in the layout when the browser goes offline.
   error-view.tsx            Friendly crash fallback used by error.tsx.
   status.tsx                <Loading> and <ErrorState> (with retry). Use these for every async state.
 src/lib/
   api.ts                    Typed API client: types, apiFetch, fetchStories/fetchStory/fetchLanguages, storyAudioUrl, ApiError.
+  favorites.ts              useFavorites(): saved story ids in localStorage.
+  use-languages.ts          useLanguages(): languages plus name(code).
   home.ts                   Home helpers: coverPalette(id), storyOfTheDay(), shortLanguageName().
   seo.ts                    Server-side SEO helpers: siteUrl() (SITE_URL), failure-tolerant getStory/getStories, JSON-LD.
   use-api.ts                useApi(load, deps): loading/error/success state, abort on unmount, retry().
@@ -76,7 +85,7 @@ Before pushing, run `npm run lint && npm run typecheck && npm test && npm run bu
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Add a page                                               | New folder in `src/app/` with `page.tsx` that renders a component from `src/components/` |
 | Call a new endpoint                                      | Add a function and its types in `src/lib/api.ts`, plus a test in `src/lib/api.test.ts`   |
-| Change the story list                                    | `src/components/story-list.tsx` and its test                                             |
+| Change the library                                       | `src/components/library.tsx` and its test                                                |
 | Change the player (and later the read-along reader, #15) | `src/components/story-player.tsx` and its test                                           |
 | Change loading or error messages                         | `src/components/status.tsx`                                                              |
 | Change colours or layout                                 | `src/app/globals.css`                                                                    |
