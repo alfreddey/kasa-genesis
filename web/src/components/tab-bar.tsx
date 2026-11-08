@@ -11,10 +11,13 @@ const TABS: Tab[] = [
   { label: "Parents", icon: <PersonIcon /> },
 ];
 
-/** Bottom navigation in glass. Only the icon of the current tab is highlighted. Tabs without a page yet are inert. */
+/** Bottom navigation in glass, a side rail from tablet width up. Only the icon of the current tab is highlighted. Tabs without a page yet are inert. */
 export function TabBar({ current }: { current: "Home" | "Library" }) {
   return (
     <nav className="tab-bar glass" aria-label="Main">
+      <span className="tab-logo" aria-hidden="true">
+        K
+      </span>
       {TABS.map((tab) => {
         const inner = (
           <>

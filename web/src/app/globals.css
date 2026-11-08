@@ -357,13 +357,17 @@ audio {
 }
 
 .home-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "greeting avatar"
+    "filter filter";
   align-items: center;
-  gap: var(--spacing-md);
+  gap: 20px var(--spacing-md);
   padding: 0 var(--spacing-xl);
 }
 .home-greeting {
-  flex: 1;
+  grid-area: greeting;
   min-width: 0;
 }
 .home-greeting h1 {
@@ -379,6 +383,7 @@ audio {
   color: var(--color-text-secondary);
 }
 .child-avatar {
+  grid-area: avatar;
   display: flex;
   flex: none;
   align-items: center;
@@ -398,7 +403,8 @@ audio {
 
 /* Language filter: one glass segmented control, the selected segment is solid orange */
 .language-filter {
-  padding: 0 var(--spacing-xl);
+  grid-area: filter;
+  min-width: 0;
 }
 .segmented {
   display: flex;
@@ -682,6 +688,9 @@ audio {
 }
 
 /* Tab bar */
+.tab-logo {
+  display: none;
+}
 .tab-bar {
   position: fixed;
   right: var(--spacing-xl);
@@ -739,6 +748,214 @@ audio {
 }
 .tab:active:not([aria-disabled="true"]) {
   transform: scale(var(--motion-press-scale));
+}
+
+/* ---------- Tablet and desktop: side rail, wide featured card, savanna scaled to the screen ----------
+ * Designs: Home / Tablet (834px) and Home / Desktop (1440px). */
+@media (min-width: 768px) {
+  .home {
+    padding: 36px 32px 40px 144px;
+  }
+  .home-column {
+    gap: 26px;
+    max-width: 1256px;
+    margin: 0;
+  }
+  .home-header,
+  .featured-wrap,
+  .shelf-header,
+  .shelf {
+    padding-inline: 0;
+  }
+  .shelf {
+    scroll-padding-inline: 0;
+  }
+  .home-header {
+    grid-template-columns: 1fr auto auto;
+    grid-template-areas: "greeting filter avatar";
+    column-gap: 20px;
+  }
+  .home-greeting p {
+    font-size: var(--text-label-lg);
+    line-height: 30px;
+  }
+  .segmented {
+    width: 280px;
+  }
+
+  .featured {
+    aspect-ratio: auto;
+    height: 300px;
+    border-radius: 40px;
+  }
+  .featured .cover {
+    border-radius: 40px;
+  }
+  .featured .cover-tag {
+    top: 24px;
+    left: 24px;
+  }
+  .featured .cover-sun {
+    left: auto;
+    right: 30px;
+    width: auto;
+    height: 30%;
+  }
+  .featured-panel {
+    right: 24px;
+    bottom: 24px;
+    left: 24px;
+    gap: var(--spacing-lg);
+    min-height: 124px;
+    padding: 18px 20px 18px 28px;
+    border-radius: var(--radius-xl);
+  }
+  .featured-title {
+    font-size: var(--text-heading-md);
+    line-height: 36px;
+  }
+  .featured-meta {
+    font-size: var(--text-label-lg);
+    line-height: 30px;
+  }
+  .play-button {
+    width: 76px;
+    height: 76px;
+    border-radius: 38px;
+    box-shadow: 0 4px 0 var(--press-edge);
+  }
+  .play-button svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .shelf-header a {
+    font-size: var(--text-label-lg);
+  }
+  .shelf {
+    gap: 20px;
+  }
+  .story-card,
+  .story-card .cover {
+    width: 200px;
+  }
+  .story-card .cover {
+    height: 200px;
+  }
+  .story-card-language {
+    display: none;
+  }
+
+  /* The bottom bar becomes a glass rail down the left edge. */
+  .tab-bar {
+    top: 20px;
+    right: auto;
+    bottom: 20px;
+    left: 20px;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 96px;
+    height: auto;
+    max-width: none;
+    margin: 0;
+    padding: 20px 0;
+    border-radius: 32px;
+  }
+  .tab-logo {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    margin-bottom: 14px;
+    border-radius: 18px;
+    background: var(--color-brand-primary);
+    box-shadow: 0 4px 0 var(--press-edge);
+    color: var(--color-text-on-brand);
+    font-size: var(--text-heading-md);
+    line-height: 36px;
+    font-weight: 700;
+  }
+  .tab {
+    flex: none;
+    gap: 4px;
+    width: 64px;
+    border-radius: 0;
+  }
+  .tab-icon {
+    height: 44px;
+  }
+  .tab svg {
+    width: 30px;
+    height: 30px;
+  }
+
+  .savanna-stage {
+    left: 0;
+    width: 100%;
+    transform: none;
+  }
+  .savanna-sun {
+    left: 80%;
+    top: -3%;
+    width: auto;
+    height: 22%;
+    aspect-ratio: 1;
+  }
+  .savanna-hill-1 {
+    left: -12%;
+    bottom: -18%;
+    width: 50%;
+    height: 50%;
+  }
+  .savanna-hill-2 {
+    left: 30%;
+    bottom: -19%;
+    width: 50%;
+    height: 45%;
+  }
+  .savanna-hill-3 {
+    left: 0;
+    bottom: -22%;
+    width: 55%;
+    height: 40%;
+  }
+  .savanna-hill-4 {
+    left: 55%;
+    bottom: -21%;
+    width: 45%;
+    height: 35%;
+  }
+}
+@media (min-width: 1200px) {
+  .home {
+    padding-left: 152px;
+  }
+  .segmented {
+    width: 360px;
+  }
+  .featured {
+    height: 340px;
+  }
+  .featured .cover-sun {
+    right: 34px;
+  }
+  .featured-panel {
+    right: auto;
+    width: 520px;
+  }
+  .tab-bar {
+    width: 104px;
+  }
+  .story-card,
+  .story-card .cover {
+    width: 230px;
+  }
+  .story-card .cover {
+    height: 230px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

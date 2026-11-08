@@ -43,36 +43,37 @@ export function Home() {
             <h1>Akwaaba!</h1>
             <p>What story shall we hear today?</p>
           </div>
+
+          {languages.status === "success" && languages.data.length > 0 && (
+            <div className="language-filter">
+              <div className="segmented glass" role="group" aria-label="Language">
+                <button
+                  type="button"
+                  className="segment"
+                  aria-pressed={language === ""}
+                  onClick={() => setLanguage("")}
+                >
+                  All
+                </button>
+                {languages.data.map((l) => (
+                  <button
+                    key={l.code}
+                    type="button"
+                    className="segment"
+                    aria-pressed={language === l.code}
+                    onClick={() => setLanguage(l.code)}
+                  >
+                    {languageName(l.code)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="child-avatar" aria-hidden="true">
             <PersonIcon />
           </div>
         </header>
-
-        {languages.status === "success" && languages.data.length > 0 && (
-          <div className="language-filter">
-            <div className="segmented glass" role="group" aria-label="Language">
-              <button
-                type="button"
-                className="segment"
-                aria-pressed={language === ""}
-                onClick={() => setLanguage("")}
-              >
-                All
-              </button>
-              {languages.data.map((l) => (
-                <button
-                  key={l.code}
-                  type="button"
-                  className="segment"
-                  aria-pressed={language === l.code}
-                  onClick={() => setLanguage(l.code)}
-                >
-                  {languageName(l.code)}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {stories.status === "loading" && (
           <div className="featured-wrap">

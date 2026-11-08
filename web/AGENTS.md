@@ -23,7 +23,7 @@ src/app/                    Routes (App Router). Pages stay thin and render a co
 src/components/             UI. One component per file, kebab-case names, test next to it.
   home.tsx                  Home: greeting, language tiles, story of the day, shelf. Fetches languages + stories.
   cover-art.tsx             Placeholder cover (sun and hills) colored from the story id.
-  tab-bar.tsx               Bottom glass navigation; only the current tab's icon is highlighted.
+  tab-bar.tsx               Glass navigation (bottom bar, side rail from tablet width); only the current tab's icon is highlighted.
   icons.tsx                 Inline SVG icons (currentColor).
   plain-page.tsx            Site header + narrow column for pages that are not Home.
   story-list.tsx            Fetches languages + stories, language filter, links (served at /library).
@@ -65,7 +65,7 @@ Before pushing, run `npm run lint && npm run typecheck && npm test && npm run bu
 - **Calling the API.** Only through `src/lib/api.ts`. Add one small function per endpoint that calls `apiFetch`, and use it from a component through `useApi`. Never call `fetch` directly from a component. `apiFetch` adds the base URL, a 10 s timeout and turns failures into `ApiError` (`status` 0 means the API was unreachable or too slow).
 - **Async states.** Every fetch shows `<Loading>` while waiting and `<ErrorState onRetry=...>` on failure. A 404 shows a friendly message without retry.
 - **Audio.** Use the URL from `storyAudioUrl(id)` as the `<audio>` `src`; the browser streams it. The first request for a story can be slow because the API synthesizes it, so show a status while the element is waiting.
-- **Styling.** Plain CSS in `globals.css`. Colors, spacing, radius, motion and type come from CSS variables named after the Figma variables (`--color-text-primary`, `--radius-md`, ...); use them instead of hex values, and change a token in Figma and here by the same name. `:root` is Color Light, the `prefers-color-scheme: dark` block is Color Dark. Glass surfaces use the `.glass` class (blur, with a solid fallback for no `backdrop-filter` and `prefers-reduced-transparency`). Font is Nunito via `@fontsource-variable/nunito`. Respect `prefers-reduced-motion`.
+- **Styling.** Plain CSS in `globals.css`. Colors, spacing, radius, motion and type come from CSS variables named after the Figma variables (`--color-text-primary`, `--radius-md`, ...); use them instead of hex values, and change a token in Figma and here by the same name. `:root` is Color Light, the `prefers-color-scheme: dark` block is Color Dark. Glass surfaces use the `.glass` class (blur, with a solid fallback for no `backdrop-filter` and `prefers-reduced-transparency`). Font is Nunito via `@fontsource-variable/nunito`. Home is responsive with two media queries matching the Figma designs: from 768px (tablet) the bottom tab bar becomes a side rail and the featured card goes wide, from 1200px (desktop) the sizes grow again. Respect `prefers-reduced-motion`.
 - **Accessibility.** Status text uses `role="status"`, errors `role="alert"`, controls have labels, and story content carries `lang` set to its language code. Tests query by role and label, which keeps this honest.
 - **Tests.** Vitest + React Testing Library, file next to the code as `*.test.ts(x)`. Mock the network with `mockApi` from `src/test/fetch.ts`, never a real API. Query by role, label or text; use `userEvent` for interaction.
 - **Formatting.** Prettier (print width 100) decides; ESLint does not argue with it.
