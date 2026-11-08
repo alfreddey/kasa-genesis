@@ -1,6 +1,8 @@
 # AGENTS.md
 
-Guide for coding agents (Claude Code, Codex, Cursor and others) working in this repo. Read this first; it should save you from exploring. `CLAUDE.md` just imports this file. Keep it current when you change the layout, commands or conventions.
+Guide for coding agents (Claude Code, Codex, Cursor and others) working in this repo. Read this first; it should save you from exploring. `CLAUDE.md` just imports this file.
+
+**Keeping this file current:** a PR that changes layout, commands, env vars or conventions updates the matching `AGENTS.md` in the same PR. CI runs `scripts/check_docs.py`, which fails on a mentioned path, `make` target or setting that no longer exists.
 
 ## What this is
 
@@ -39,6 +41,7 @@ CONTRIBUTING.md         Branches, Conventional Commits, tests, adding stories/la
 LICENSE                 Code is proprietary (all rights reserved); models and data keep their own licences.
 .editorconfig           UTF-8, LF, 4 spaces for Python, 2 for everything else.
 Makefile                setup / test / run shortcuts.
+scripts/                check_docs.py (CI docs check, #28) and its tests (`pytest scripts`).
 ```
 
 Also: `docker-compose.yml`, `api/Dockerfile` (context is the repo root) and `web/Dockerfile`, described in `docs/docker.md`. Planned, not here yet: full CI (#6).
@@ -51,6 +54,7 @@ Run from the repo root.
 | --- | --- |
 | Install API + test deps (fast, no model) | `make setup` |
 | Run tests | `make test` |
+| Check the docs match the repo | `make check-docs` |
 | Install the real TTS model deps (PyTorch, large) | `make setup-tts` |
 | Serve at http://localhost:8000 | `make run` |
 | Serve with the instant placeholder voice (no model) | `make dev` |

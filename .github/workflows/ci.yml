@@ -26,6 +26,7 @@ jobs:
       api: ${{ github.event_name == 'push' || steps.filter.outputs.api == 'true' }}
       web: ${{ github.event_name == 'push' || steps.filter.outputs.web == 'true' }}
       docker: ${{ github.event_name == 'push' || steps.filter.outputs.docker == 'true' }}
+      docs: ${{ github.event_name == 'push' || steps.filter.outputs.docs == 'true' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -39,6 +40,12 @@ jobs:
               - '.github/workflows/ci.yml'
             web:
               - 'web/**'
+              - '.github/workflows/ci.yml'
+            docs:
+              - '**/*.md'
+              - '**/.env.example'
+              - 'Makefile'
+              - 'scripts/**'
               - '.github/workflows/ci.yml'
             # Images only need a rebuild check when how they are built changes.
             docker:
@@ -79,6 +86,20 @@ jobs:
       - name: Show coverage on the run summary
         if: always()
         run: test -f coverage.md && cat coverage.md >> "$GITHUB_STEP_SUMMARY" || true
+
+  # Docs must match the repo: paths, make targets and settings they mention must exist (#28).
+  docs:
+    name: Docs - match the repo
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/check_docs.py
+      - run: pip install pytest && pytest -q scripts
 
   web:
     name: Web - lint, types, tests, build
@@ -154,7 +175,7 @@ jobs:
   ci-ok:
     name: CI passed
     if: always()
-    needs: [changes, api, web, docker, compose]
+    needs: [changes, api, docs, web, docker, compose]
     runs-on: ubuntu-latest
     steps:
       - name: Check job results

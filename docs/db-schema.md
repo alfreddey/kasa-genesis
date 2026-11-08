@@ -494,7 +494,7 @@ Linked from the privacy work in the product spec (#79, section 10) and tracked i
 
 ## Seed data
 
-For development and tests (#40). Seeds are idempotent Python scripts (`make seed`) that upsert by natural key, never Alembic data migrations, so they can be re-run and never reach production by accident.
+For development and tests (#40). Seeds are idempotent Python scripts (run by a planned seed target in the Makefile) that upsert by natural key, never Alembic data migrations, so they can be re-run and never reach production by accident.
 
 | Set | Contents |
 | --- | --- |

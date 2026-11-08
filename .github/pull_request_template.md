@@ -14,5 +14,5 @@ Closes #
 ## Checklist
 
 - [ ] The title is a Conventional Commit (`feat: ...`, `fix: ...`, `docs: ...`)
-- [ ] `AGENTS.md`, `README.md` or `CONTRIBUTING.md` updated if commands, layout or conventions changed
+- [ ] Updated `AGENTS.md` / docs if layout, commands, env vars or conventions changed (`python scripts/check_docs.py` passes)
 - [ ] No model weights, datasets or generated audio committed
