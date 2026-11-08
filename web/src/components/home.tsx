@@ -5,12 +5,11 @@ import { useState } from "react";
 import { fetchLanguages, fetchStories, type StorySummary } from "@/lib/api";
 import { shortLanguageName, storyOfTheDay } from "@/lib/home";
 import { useApi } from "@/lib/use-api";
+import { AppShell } from "./app-shell";
 import { CoverArt } from "./cover-art";
 import { PersonIcon, PlayIcon } from "./icons";
 import { ErrorState, Loading } from "./status";
-import { TabBar } from "./tab-bar";
-
-const storyHref = (s: StorySummary) => `/stories/${encodeURIComponent(s.id)}`;
+import { StoryCard, storyHref } from "./story-card";
 
 /** The Home page: greeting, language tiles, the story of the day and a shelf of the rest. */
 export function Home() {
@@ -26,75 +25,61 @@ export function Home() {
   const languageName = (code: string) => names.get(code) ?? code;
 
   return (
-    <div className="home">
-      <div className="home-backdrop" aria-hidden="true">
-        <div className="savanna-stage">
-          <span className="savanna-sun" />
-          <span className="savanna-hill savanna-hill-1" />
-          <span className="savanna-hill savanna-hill-2" />
-          <span className="savanna-hill savanna-hill-3" />
-          <span className="savanna-hill savanna-hill-4" />
+    <AppShell current="Home">
+      <header className="home-header">
+        <div className="home-greeting">
+          <h1>Akwaaba!</h1>
+          <p>What story shall we hear today?</p>
         </div>
-      </div>
 
-      <div className="home-column">
-        <header className="home-header">
-          <div className="home-greeting">
-            <h1>Akwaaba!</h1>
-            <p>What story shall we hear today?</p>
-          </div>
-
-          {languages.status === "success" && languages.data.length > 0 && (
-            <div className="language-filter">
-              <div className="segmented glass" role="group" aria-label="Language">
+        {languages.status === "success" && languages.data.length > 0 && (
+          <div className="language-filter">
+            <div className="segmented glass" role="group" aria-label="Language">
+              <button
+                type="button"
+                className="segment"
+                aria-pressed={language === ""}
+                onClick={() => setLanguage("")}
+              >
+                All
+              </button>
+              {languages.data.map((l) => (
                 <button
+                  key={l.code}
                   type="button"
                   className="segment"
-                  aria-pressed={language === ""}
-                  onClick={() => setLanguage("")}
+                  aria-pressed={language === l.code}
+                  onClick={() => setLanguage(l.code)}
                 >
-                  All
+                  {languageName(l.code)}
                 </button>
-                {languages.data.map((l) => (
-                  <button
-                    key={l.code}
-                    type="button"
-                    className="segment"
-                    aria-pressed={language === l.code}
-                    onClick={() => setLanguage(l.code)}
-                  >
-                    {languageName(l.code)}
-                  </button>
-                ))}
-              </div>
+              ))}
             </div>
-          )}
-
-          <div className="child-avatar" aria-hidden="true">
-            <PersonIcon />
-          </div>
-        </header>
-
-        {stories.status === "loading" && (
-          <div className="featured-wrap">
-            <Loading label="Loading stories…" />
           </div>
         )}
-        {stories.status === "error" && (
-          <div className="featured-wrap">
-            <ErrorState error={stories.error} onRetry={stories.retry} />
-          </div>
-        )}
-        {stories.status === "success" && (
-          <Shelves
-            stories={stories.data.filter((s) => !language || s.language === language)}
-            languageName={languageName}
-          />
-        )}
-      </div>
 
-      <TabBar current="Home" />
-    </div>
+        <div className="child-avatar" aria-hidden="true">
+          <PersonIcon />
+        </div>
+      </header>
+
+      {stories.status === "loading" && (
+        <div className="featured-wrap">
+          <Loading label="Loading stories…" />
+        </div>
+      )}
+      {stories.status === "error" && (
+        <div className="featured-wrap">
+          <ErrorState error={stories.error} onRetry={stories.retry} />
+        </div>
+      )}
+      {stories.status === "success" && (
+        <Shelves
+          stories={stories.data.filter((s) => !language || s.language === language)}
+          languageName={languageName}
+        />
+      )}
+    </AppShell>
   );
 }
 
@@ -148,18 +133,7 @@ function Shelves({
           <ul className="shelf" aria-label="New stories">
             {others.map((s) => (
               <li key={s.id}>
-                <Link href={storyHref(s)} className="story-card">
-                  <CoverArt id={s.id}>
-                    <span className="cover-tag glass glass-on-art">{languageName(s.language)}</span>
-                    <span className="play-glass glass glass-on-art">
-                      <PlayIcon />
-                    </span>
-                  </CoverArt>
-                  <span className="story-card-title" lang={s.language}>
-                    {s.title}
-                  </span>
-                  <span className="story-card-language">{languageName(s.language)}</span>
-                </Link>
+                <StoryCard story={s} language={languageName(s.language)} />
               </li>
             ))}
           </ul>
