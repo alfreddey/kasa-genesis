@@ -49,26 +49,28 @@ export function Home() {
         </header>
 
         {languages.status === "success" && languages.data.length > 0 && (
-          <div className="chips" role="group" aria-label="Language">
-            <button
-              type="button"
-              className="chip glass"
-              aria-pressed={language === ""}
-              onClick={() => setLanguage("")}
-            >
-              All
-            </button>
-            {languages.data.map((l) => (
+          <div className="language-filter">
+            <div className="segmented glass" role="group" aria-label="Language">
               <button
-                key={l.code}
                 type="button"
-                className="chip glass"
-                aria-pressed={language === l.code}
-                onClick={() => setLanguage(l.code)}
+                className="segment"
+                aria-pressed={language === ""}
+                onClick={() => setLanguage("")}
               >
-                {languageName(l.code)}
+                All
               </button>
-            ))}
+              {languages.data.map((l) => (
+                <button
+                  key={l.code}
+                  type="button"
+                  className="segment"
+                  aria-pressed={language === l.code}
+                  onClick={() => setLanguage(l.code)}
+                >
+                  {languageName(l.code)}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

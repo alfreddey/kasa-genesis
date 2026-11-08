@@ -396,23 +396,28 @@ audio {
   height: 36px;
 }
 
-/* Language tiles */
-.chips {
+/* Language filter: one glass segmented control, the selected segment is solid orange */
+.language-filter {
+  padding: 0 var(--spacing-xl);
+}
+.segmented {
   display: flex;
-  gap: 10px;
-  padding: 0 var(--spacing-xl) 6px;
-  margin: 0;
+  gap: 4px;
+  padding: 6px;
   overflow-x: auto;
+  border-radius: 22px;
   scrollbar-width: none;
 }
-.chips::-webkit-scrollbar {
+.segmented::-webkit-scrollbar {
   display: none;
 }
-.chip {
-  flex: none;
-  height: 54px;
-  padding: 0 22px;
+.segment {
+  flex: 1 0 72px;
+  height: 48px;
+  padding: 0 var(--spacing-md);
+  border: 0;
   border-radius: var(--radius-md);
+  background: transparent;
   color: var(--color-text-primary);
   font-size: var(--text-label-lg);
   line-height: 28px;
@@ -420,24 +425,16 @@ audio {
   cursor: pointer;
   transition:
     transform var(--motion-duration-fast) var(--motion-ease-spring),
+    background-color var(--motion-duration-fast) ease,
     box-shadow var(--motion-duration-fast) ease;
 }
-.chip.glass {
-  border-radius: var(--radius-md);
-}
-.chip[aria-pressed="true"] {
+.segment[aria-pressed="true"] {
   background: var(--color-brand-primary);
-  border: 0;
   color: var(--color-text-on-brand);
   box-shadow: 0 4px 0 var(--press-edge);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
 }
-.chip:active {
-  transform: translateY(4px);
-}
-.chip[aria-pressed="true"]:active {
-  box-shadow: 0 0 0 var(--press-edge);
+.segment:active {
+  transform: translateY(2px);
 }
 
 /* Cover art: a gradient with a sun and two hills, tinted per palette. Sizes are percentages of the
@@ -745,13 +742,13 @@ audio {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chip,
+  .segment,
   .featured,
   .story-card,
   .tab {
     transition: none;
   }
-  .chip:active,
+  .segment:active,
   .featured:active,
   .story-card:active,
   .tab:active {
