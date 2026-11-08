@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PlainPage } from "@/components/plain-page";
 import { StoryPlayer } from "@/components/story-player";
 import { describe, getStory, siteUrl, storyJsonLd } from "@/lib/seo";
 
@@ -23,7 +24,7 @@ export default async function StoryPage({ params }: Props) {
   const id = decodeURIComponent((await params).id);
   const story = await getStory(id);
   return (
-    <>
+    <PlainPage>
       {story && (
         <script
           type="application/ld+json"
@@ -34,6 +35,6 @@ export default async function StoryPage({ params }: Props) {
         />
       )}
       <StoryPlayer id={id} />
-    </>
+    </PlainPage>
   );
 }

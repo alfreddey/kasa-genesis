@@ -1,5 +1,5 @@
-import { StoryList } from "@/components/story-list";
+import { Home } from "@/components/home";
 
 export default function HomePage() {
-  return <StoryList />;
+  return <Home />;
 }
