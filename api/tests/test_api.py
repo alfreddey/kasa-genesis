@@ -237,3 +237,12 @@ def test_committed_openapi_json_is_current():
     assert json.loads(committed.read_text(encoding="utf-8")) == openapi.schema(), (
         "api/openapi.json is out of date. Run: cd api && python -m kasa.openapi > openapi.json"
     )
+
+
+def test_abena_voice_is_part_of_the_cache_key():
+    from kasa.app import _voice_id
+    from kasa.config import Settings
+
+    a = _voice_id(Settings(_env_file=None, kasa_voice="abena"), None)
+    b = _voice_id(Settings(_env_file=None, kasa_voice="abena", abena_voices={"aka": "x"}), None)
+    assert a != b

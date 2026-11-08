@@ -4,6 +4,7 @@ Set KASA_VOICE to choose one when the server starts:
 
     KASA_VOICE=tone make run          # instant placeholder audio, no model download
     KASA_VOICE=mms make run           # Meta MMS-TTS (the default, needs `make setup-tts`)
+    KASA_VOICE=abena make run         # Abena AI hosted voice (set ABENA_API_KEY)
     KASA_VOICE=mypkg.voices:MyVoice   # any class or factory, as "module:attribute"
 
 The "module:attribute" form is how an experiment plugs in a new model (for example a
@@ -18,8 +19,9 @@ import importlib
 import math
 import os
 from collections.abc import Callable, Sequence
-from typing import cast
+from typing import Any, cast
 
+from .abena import AbenaSynthesizer
 from .tts import MmsSynthesizer, Synthesizer
 
 DEFAULT_VOICE = "mms"
@@ -60,6 +62,7 @@ class SilentSynthesizer:
 # Built-in voices by short name. Add a line here when a new engine becomes a regular option.
 VOICES: dict[str, Callable[[], Synthesizer]] = {
     "mms": MmsSynthesizer,
+    "abena": AbenaSynthesizer,
     "tone": ToneSynthesizer,
     "silent": SilentSynthesizer,
 }
@@ -70,13 +73,18 @@ def voice_name() -> str:
 
 
 def load_synthesizer(
-    name: str | None = None, model_ids: dict[str, str] | None = None
+    name: str | None = None,
+    model_ids: dict[str, str] | None = None,
+    abena: dict[str, Any] | None = None,
 ) -> Synthesizer:
     """Build the voice called `name` (default: the KASA_VOICE env var, then "mms").
 
-    `model_ids` ({language: Hugging Face id}) only applies to the "mms" voice.
+    `model_ids` ({language: Hugging Face id}) only applies to the "mms" voice, and
+    `abena` (keyword arguments for AbenaSynthesizer) only to the "abena" voice.
     """
     name = voice_name() if name is None else name
+    if name == "abena":
+        return AbenaSynthesizer(**(abena or {}))
     if name == "mms":
         return MmsSynthesizer(model_ids)
     if name in VOICES:
