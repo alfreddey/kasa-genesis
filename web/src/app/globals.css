@@ -1,38 +1,238 @@
-/* Placeholder styles. The real design system comes from Figma (#80, #41-#47). */
+/*
+ * Design tokens come from the Figma file "Kasa Genesis Design System" (palette C, "Sunny orange").
+ * Names follow the Figma variables: --color-<group>-<name> is color/<group>/<name>, and the
+ * primitives are --<hue>-<step>. Color Light is :root, Color Dark is prefers-color-scheme: dark.
+ * When a token changes in Figma, change it here by the same name.
+ */
+
+/* ---------- Primitives ---------- */
+:root {
+  --orange-100: #ffe3c7;
+  --orange-200: #ffc994;
+  --orange-300: #ffaa5c;
+  --orange-400: #ff8a1f;
+  --orange-600: #d96b05;
+  --orange-700: #a85000;
+  --orange-800: #7a3a00;
+  --orange-900: #4d2400;
+  --teal-100: #c2f2eb;
+  --teal-200: #8ae3d8;
+  --teal-300: #4dd0c2;
+  --teal-400: #14b8a6;
+  --teal-600: #0b8c7e;
+  --teal-700: #09695f;
+  --teal-900: #03302c;
+  --yellow-100: #fff3b8;
+  --yellow-200: #ffe680;
+  --yellow-300: #ffdb5c;
+  --yellow-400: #ffd23f;
+  --yellow-700: #806800;
+  --yellow-900: #3b3000;
+  --pink-100: #ffd9e5;
+  --pink-200: #ffb3cb;
+  --pink-300: #ff8caf;
+  --pink-500: #ff5c8a;
+  --pink-900: #4d1425;
+  --gray-50: #f7f8fa;
+  --gray-200: #dde1e8;
+  --gray-300: #c2c8d2;
+  --gray-500: #717a8a;
+  --gray-600: #566070;
+  --gray-700: #3f4857;
+  --gray-800: #2a313d;
+  --gray-900: #181d26;
+  --gray-950: #0e1218;
+  --red-100: #ffe0e4;
+  --red-300: #ff8a9a;
+  --red-600: #b3203a;
+  --red-900: #4a0f1a;
+}
+
+/* ---------- Scales (same in light and dark) ---------- */
+:root {
+  --spacing-xxs: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+  --spacing-4xl: 64px;
+
+  --size-touch-min: 48px;
+  --size-touch-comfortable: 64px;
+  --size-icon-md: 24px;
+  --size-icon-lg: 32px;
+  --size-content-max: 672px;
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-full: 999px;
+
+  --motion-duration-instant: 100ms;
+  --motion-duration-fast: 180ms;
+  --motion-duration-base: 280ms;
+  --motion-duration-slow: 420ms;
+  --motion-press-scale: 0.96;
+  /* A soft overshoot, the CSS stand-in for the Figma "bouncy" spring. */
+  --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --glass-blur-sm: 12px;
+  --glass-blur-md: 24px;
+  --glass-blur-lg: 40px;
+  --glass-saturate: 1.6;
+
+  /* Type ramp: all Nunito and large, for children 4 to 10. */
+  --font-sans:
+    "Nunito Variable", "Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --text-display: 56px;
+  --text-heading-lg: 34px;
+  --text-heading-md: 28px;
+  --text-heading-sm: 22px;
+  --text-label-lg: 20px;
+  --text-label-md: 18px;
+  --text-body: 18px;
+  --text-caption: 16px;
+}
+
+/* ---------- Color Light ---------- */
 :root {
   color-scheme: light dark;
-  --fg: #1a1a1a;
-  --bg: #fafaf7;
-  --muted: #666;
-  --accent: #b5541c;
-  --error: #b00020;
+  --color-bg-canvas: #ffffff;
+  --color-bg-surface: #ffffff;
+  --color-bg-surface-raised: var(--gray-50);
+  --color-glass-fill: rgb(255 255 255 / 0.64);
+  --color-glass-fill-strong: rgb(255 255 255 / 0.8);
+  --color-glass-stroke: rgb(255 255 255 / 0.9);
+  --color-glass-highlight: rgb(255 255 255 / 0.9);
+  --color-glass-shadow: rgb(13 18 26 / 0.16);
+  --color-text-primary: var(--gray-900);
+  --color-text-secondary: var(--gray-600);
+  --color-text-disabled: #9aa2b1;
+  --color-text-on-brand: #ffffff;
+  --color-text-link: var(--orange-700);
+  --color-brand-primary: var(--orange-600);
+  --color-brand-primary-hover: var(--orange-700);
+  --color-brand-primary-subtle: var(--orange-100);
+  --color-brand-secondary: var(--teal-600);
+  --color-brand-secondary-subtle: var(--teal-100);
+  --color-brand-accent: var(--yellow-400);
+  --color-brand-accent-subtle: var(--yellow-100);
+  --color-brand-playful: var(--pink-500);
+  --color-brand-playful-subtle: var(--pink-100);
+  --color-readalong-word: var(--yellow-200);
+  --color-border-default: var(--gray-200);
+  --color-border-strong: #9aa2b1;
+  --color-focus-ring: var(--teal-600);
+  --color-feedback-error: var(--red-600);
+  --color-feedback-error-subtle: var(--red-100);
+
+  /* Used only by the Home page, not Figma variables. */
+  --press-edge: #8c4200; /* the solid "edge" under the active language tile */
+  --glass-on-art-fill: var(--color-glass-fill); /* glass sitting on bright cover art */
 }
+
+/* ---------- Color Dark ---------- */
 @media (prefers-color-scheme: dark) {
   :root {
-    --fg: #eee;
-    --bg: #161616;
-    --muted: #aaa;
-    --accent: #f0a070;
-    --error: #ff8a80;
+    --color-bg-canvas: var(--gray-950);
+    --color-bg-surface: var(--gray-900);
+    --color-bg-surface-raised: var(--gray-800);
+    --color-glass-fill: rgb(255 255 255 / 0.1);
+    --color-glass-fill-strong: rgb(13 18 26 / 0.64);
+    --color-glass-stroke: rgb(255 255 255 / 0.2);
+    --color-glass-highlight: rgb(255 255 255 / 0.3);
+    --color-glass-shadow: rgb(13 18 26 / 0.64);
+    --color-text-primary: var(--gray-50);
+    --color-text-secondary: var(--gray-300);
+    --color-text-disabled: var(--gray-600);
+    --color-text-on-brand: var(--gray-950);
+    --color-text-link: var(--orange-300);
+    --color-brand-primary: var(--orange-400);
+    --color-brand-primary-hover: var(--orange-300);
+    --color-brand-primary-subtle: var(--orange-900);
+    --color-brand-secondary: var(--teal-300);
+    --color-brand-secondary-subtle: var(--teal-900);
+    --color-brand-accent: var(--yellow-300);
+    --color-brand-accent-subtle: var(--yellow-900);
+    --color-brand-playful: var(--pink-300);
+    --color-brand-playful-subtle: var(--pink-900);
+    --color-readalong-word: var(--yellow-700);
+    --color-border-default: var(--gray-700);
+    --color-border-strong: var(--gray-500);
+    --color-focus-ring: var(--teal-300);
+    --color-feedback-error: var(--red-300);
+    --color-feedback-error-subtle: var(--red-900);
+
+    --press-edge: var(--orange-600);
+    /* White glass on orange or yellow art is too pale to read; use the dark glass there. */
+    --glass-on-art-fill: var(--color-glass-fill-strong);
   }
 }
+
+/* ---------- Base ---------- */
 * {
   box-sizing: border-box;
 }
 body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: 28px;
+  color: var(--color-text-primary);
+  background: var(--color-bg-canvas);
+}
+a {
+  color: var(--color-text-link);
+}
+:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+button {
+  font: inherit;
+}
+
+/* ---------- Liquid glass ----------
+ * Translucent, blurred surface. Falls back to a solid surface when the browser cannot blur or the
+ * reader asks for reduced transparency. Put .glass on the element; .glass-on-art when it sits on
+ * bright cover art. */
+.glass {
+  background: var(--color-glass-fill);
+  border: 1.5px solid var(--color-glass-stroke);
+  box-shadow: inset 0 1px 0 var(--color-glass-highlight);
+  -webkit-backdrop-filter: blur(var(--glass-blur-md)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-md)) saturate(var(--glass-saturate));
+}
+.glass-on-art {
+  background: var(--glass-on-art-fill);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-on-art {
+    background: var(--color-bg-surface-raised);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-on-art {
+    background: var(--color-bg-surface-raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* ---------- Plain pages (library, player, errors) ---------- */
+.plain-page {
   margin: 0 auto;
   max-width: 42rem;
   padding: 1.5rem 1rem;
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
-  color: var(--fg);
-  background: var(--bg);
-}
-a {
-  color: var(--accent);
 }
 .muted {
-  color: var(--muted);
+  color: var(--color-text-secondary);
 }
 .toolbar {
   display: flex;
@@ -48,14 +248,510 @@ a {
   margin: 0.4rem 0;
 }
 .status {
-  color: var(--muted);
+  color: var(--color-text-secondary);
 }
 .status-error {
-  color: var(--error);
+  color: var(--color-feedback-error);
 }
 audio {
   width: 100%;
 }
 .story-text {
   font-size: 1.25rem;
+}
+
+/* ---------- Home ---------- */
+.home {
+  position: relative;
+  min-height: 100dvh;
+  overflow-x: clip;
+  padding: 56px 0 calc(80px + 40px + env(safe-area-inset-bottom));
+}
+.home-column {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+/* Savanna: a teal sky, a sun and four hills, kept still behind the scrolling page. The stage is
+ * laid out as on the 390px design and anchored to the bottom of the screen. */
+.home-backdrop {
+  --sky-top: #9be3db;
+  --sky-mid: #e4f7f0;
+  --sky-bottom: #fff3d6;
+  --savanna-sun: var(--yellow-400);
+  --savanna-hill-1: var(--teal-400);
+  --savanna-hill-2: var(--orange-400);
+  --savanna-hill-3: var(--teal-600);
+  --savanna-hill-4: var(--teal-700);
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(180deg, var(--sky-top), var(--sky-mid) 55%, var(--sky-bottom));
+}
+@media (prefers-color-scheme: dark) {
+  .home-backdrop {
+    --sky-top: var(--teal-900);
+    --sky-mid: var(--gray-900);
+    --sky-bottom: var(--gray-950);
+    --savanna-sun: var(--yellow-300);
+    --savanna-hill-1: var(--teal-700);
+    --savanna-hill-2: var(--orange-800);
+    --savanna-hill-3: var(--teal-900);
+    --savanna-hill-4: #022220;
+  }
+}
+.savanna-stage {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: min(100%, 560px);
+  transform: translateX(-50%);
+}
+.savanna-sun,
+.savanna-hill {
+  position: absolute;
+  border-radius: 50%;
+}
+.savanna-sun {
+  left: 230px;
+  top: -20px;
+  width: 170px;
+  height: 170px;
+  background: var(--savanna-sun);
+}
+.savanna-hill-1 {
+  left: -120px;
+  bottom: -166px;
+  width: 520px;
+  height: 420px;
+  background: var(--savanna-hill-1);
+}
+.savanna-hill-2 {
+  left: 140px;
+  bottom: -206px;
+  width: 480px;
+  height: 400px;
+  background: var(--savanna-hill-2);
+}
+.savanna-hill-3 {
+  left: -40px;
+  bottom: -236px;
+  width: 500px;
+  height: 360px;
+  background: var(--savanna-hill-3);
+}
+.savanna-hill-4 {
+  left: 200px;
+  bottom: -216px;
+  width: 360px;
+  height: 300px;
+  background: var(--savanna-hill-4);
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: 0 var(--spacing-xl);
+}
+.home-greeting {
+  flex: 1;
+  min-width: 0;
+}
+.home-greeting h1 {
+  margin: 0;
+  font-size: var(--text-heading-lg);
+  line-height: 42px;
+  font-weight: 700;
+}
+.home-greeting p {
+  margin: 2px 0 0;
+  font-size: var(--text-body);
+  line-height: 28px;
+  color: var(--color-text-secondary);
+}
+.child-avatar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  border-radius: var(--radius-full);
+  background: var(--color-brand-playful);
+  color: var(--color-text-on-brand);
+  font-size: var(--text-heading-lg);
+  font-weight: 700;
+}
+.child-avatar svg {
+  width: 36px;
+  height: 36px;
+}
+
+/* Language filter: one glass segmented control, the selected segment is solid orange */
+.language-filter {
+  padding: 0 var(--spacing-xl);
+}
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  overflow-x: auto;
+  border-radius: 22px;
+  scrollbar-width: none;
+}
+.segmented::-webkit-scrollbar {
+  display: none;
+}
+.segment {
+  flex: 1 0 72px;
+  height: 48px;
+  padding: 0 var(--spacing-md);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: var(--text-label-lg);
+  line-height: 28px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--motion-duration-fast) var(--motion-ease-spring),
+    background-color var(--motion-duration-fast) ease,
+    box-shadow var(--motion-duration-fast) ease;
+}
+.segment[aria-pressed="true"] {
+  background: var(--color-brand-primary);
+  color: var(--color-text-on-brand);
+  box-shadow: 0 4px 0 var(--press-edge);
+}
+.segment:active {
+  transform: translateY(2px);
+}
+
+/* Cover art: a gradient with a sun and two hills, tinted per palette. Sizes are percentages of the
+ * box so it works for both the big featured card and the shelf cards. */
+.cover {
+  --cover-from: var(--orange-300);
+  --cover-to: var(--orange-400);
+  --cover-sun: var(--yellow-400);
+  --cover-hill-1: var(--teal-400);
+  --cover-hill-2: var(--teal-600);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--cover-from), var(--cover-to));
+}
+.cover-teal {
+  --cover-from: var(--teal-200);
+  --cover-to: var(--teal-400);
+  --cover-hill-1: var(--orange-400);
+  --cover-hill-2: var(--orange-600);
+}
+.cover-pink {
+  --cover-from: var(--pink-300);
+  --cover-to: var(--pink-500);
+  --cover-hill-1: var(--teal-400);
+  --cover-hill-2: var(--teal-600);
+}
+.cover-yellow {
+  --cover-from: var(--yellow-200);
+  --cover-to: var(--yellow-400);
+  --cover-sun: var(--orange-300);
+  --cover-hill-1: var(--pink-300);
+  --cover-hill-2: var(--pink-500);
+}
+.cover-sun,
+.cover-hill-1,
+.cover-hill-2 {
+  position: absolute;
+  border-radius: 50%;
+}
+.cover-sun {
+  left: 60%;
+  top: 8%;
+  width: 30%;
+  aspect-ratio: 1;
+  background: var(--cover-sun);
+}
+.cover-hill-1 {
+  left: -30%;
+  top: 60%;
+  width: 110%;
+  height: 60%;
+  background: var(--cover-hill-1);
+}
+.cover-hill-2 {
+  left: 30%;
+  top: 72%;
+  width: 100%;
+  height: 55%;
+  background: var(--cover-hill-2);
+}
+.cover-tag {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 7px 14px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--text-label-md);
+  line-height: 24px;
+  font-weight: 700;
+}
+.play-glass {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  color: var(--color-text-primary);
+}
+.play-glass svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* Story of the day */
+.featured-wrap {
+  padding: 0 var(--spacing-xl);
+}
+.featured {
+  display: block;
+  position: relative;
+  aspect-ratio: 342 / 360;
+  border-radius: 36px;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: transform var(--motion-duration-fast) var(--motion-ease-spring);
+}
+.featured:active {
+  transform: scale(var(--motion-press-scale));
+}
+.featured .cover {
+  position: absolute;
+  inset: 0;
+  border-radius: 36px;
+}
+.featured .cover-tag {
+  top: 18px;
+  left: 18px;
+}
+.featured-panel {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-height: 116px;
+  padding: 14px 16px 14px 20px;
+  border-radius: 28px;
+}
+.featured-text {
+  flex: 1;
+  min-width: 0;
+}
+.featured-kicker,
+.featured-meta {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+.featured-kicker {
+  font-size: var(--text-caption);
+  line-height: 22px;
+  font-weight: 600;
+}
+.featured-title {
+  margin: 2px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: var(--text-heading-sm);
+  line-height: 30px;
+  font-weight: 700;
+}
+.featured-meta {
+  font-size: var(--text-body);
+  line-height: 28px;
+}
+.play-button {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  border-radius: 34px;
+  background: var(--color-brand-primary);
+  color: var(--color-text-on-brand);
+}
+.play-button svg {
+  width: 36px;
+  height: 36px;
+}
+
+/* Shelves */
+.shelf-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: 0 var(--spacing-xl);
+}
+.shelf-header h2 {
+  flex: 1;
+  margin: 0;
+  font-size: var(--text-heading-md);
+  line-height: 36px;
+  font-weight: 700;
+}
+.shelf-header a {
+  display: flex;
+  align-items: center;
+  min-height: var(--size-touch-min);
+  padding: 0 var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-size: var(--text-body);
+  line-height: 24px;
+  font-weight: 700;
+  color: var(--color-text-link);
+  text-decoration: none;
+}
+.shelf {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin: 0;
+  padding: 0 var(--spacing-xl);
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--spacing-xl);
+  scrollbar-width: none;
+}
+.shelf::-webkit-scrollbar {
+  display: none;
+}
+.shelf > li {
+  flex: none;
+  scroll-snap-align: start;
+}
+.story-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  width: 210px;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: transform var(--motion-duration-fast) var(--motion-ease-spring);
+}
+.story-card:active {
+  transform: scale(var(--motion-press-scale));
+}
+.story-card .cover {
+  width: 210px;
+  height: 210px;
+  border-radius: var(--radius-xl);
+}
+.story-card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: var(--text-label-lg);
+  line-height: 28px;
+  font-weight: 700;
+}
+.story-card-language {
+  font-size: var(--text-caption);
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+/* Tab bar */
+.tab-bar {
+  position: fixed;
+  right: var(--spacing-xl);
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  left: var(--spacing-xl);
+  z-index: 10;
+  display: flex;
+  gap: 2px;
+  height: 80px;
+  max-width: 512px;
+  margin-inline: auto;
+  padding: 8px;
+  border-radius: 28px;
+  border-color: var(--color-border-default);
+  box-shadow: 0 12px 32px rgb(13 18 26 / 0.18);
+}
+.tab {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: var(--text-caption);
+  line-height: 22px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform var(--motion-duration-fast) var(--motion-ease-spring);
+}
+/* Only the icon is highlighted on the selected tab; the label keeps the normal text color. */
+.tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 40px;
+  border-radius: 20px;
+  transition: background-color var(--motion-duration-fast) ease;
+}
+.tab svg {
+  width: 32px;
+  height: 32px;
+}
+.tab[aria-current="page"] .tab-icon {
+  background: var(--color-brand-primary);
+  color: var(--color-text-on-brand);
+}
+.tab[aria-disabled="true"] {
+  cursor: default;
+}
+.tab:active:not([aria-disabled="true"]) {
+  transform: scale(var(--motion-press-scale));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segment,
+  .featured,
+  .story-card,
+  .tab {
+    transition: none;
+  }
+  .segment:active,
+  .featured:active,
+  .story-card:active,
+  .tab:active {
+    transform: none;
+  }
 }
