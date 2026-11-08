@@ -246,3 +246,33 @@ def test_abena_voice_is_part_of_the_cache_key():
     a = _voice_id(Settings(_env_file=None, kasa_voice="abena"), None)
     b = _voice_id(Settings(_env_file=None, kasa_voice="abena", abena_voices={"aka": "x"}), None)
     assert a != b
+
+
+def _abena_down(status, retry_after=None):
+    from kasa.abena import AbenaError
+    from kasa.app import create_app
+
+    class Down:
+        def synthesize(self, text, language):
+            raise AbenaError("Abena returned HTTP 503", status, retry_after)
+
+    from fastapi.testclient import TestClient
+
+    return TestClient(create_app(synth=Down()))
+
+
+def test_busy_voice_gives_503_with_retry_after_not_500():
+    r = _abena_down(503, 12).get("/api/v1/stories/twi-greetings/audio")
+    assert r.status_code == 503
+    assert r.headers["retry-after"] == "12"
+    assert "busy" in r.json()["detail"]
+
+
+def test_busy_voice_retry_after_has_a_minimum():
+    r = _abena_down(0).post("/api/v1/tts", json={"text": "Akwaaba", "language": "aka"})
+    assert r.status_code == 503 and int(r.headers["retry-after"]) >= 5
+
+
+def test_refused_text_gives_502():
+    r = _abena_down(400).post("/api/v1/tts", json={"text": "Akwaaba", "language": "aka"})
+    assert r.status_code == 502

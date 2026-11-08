@@ -7,6 +7,7 @@ and in the OpenAPI schema (GET /openapi.json, interactive docs at /docs).
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 
 from . import schemas
+from .abena import AbenaError
 from .cache import Speaker, make_cache
 from .config import Settings
 from .flags import parse_flags
@@ -22,6 +24,8 @@ from .languages import LANGUAGES
 from .stories import load_stories
 from .tts import Synthesizer
 from .voices import load_synthesizer
+
+log = logging.getLogger(__name__)
 
 STATIC = Path(__file__).resolve().parent / "static"
 API_PREFIX = "/api/v1"
@@ -114,6 +118,16 @@ def create_app(
             audio, key = app.state.speaker.speak(text, language)
         except ValueError as e:
             raise HTTPException(400, str(e)) from e
+        except AbenaError as e:
+            log.warning("Abena failed: %s", e)
+            if e.busy:
+                wait = int(max(e.retry_after or 0, 5))
+                raise HTTPException(
+                    503,
+                    "The voice is busy right now. Try again in a moment.",
+                    headers={"Retry-After": str(wait)},
+                ) from e
+            raise HTTPException(502, "The voice service could not read this text.") from e
         return _wav(request, audio, key)
 
     @app.get("/", include_in_schema=False)
@@ -159,7 +173,7 @@ def create_app(
     @v1.get(
         "/stories/{story_id}/audio",
         response_class=Response,
-        responses={**WAV_RESPONSE, **error(400, 404)},
+        responses={**WAV_RESPONSE, **error(400, 404, 502, 503)},
     )
     def story_audio(story_id: str, request: Request) -> Response:
         """The whole story read aloud, as WAV. Usable directly as an <audio> src.
@@ -170,7 +184,7 @@ def create_app(
         s = get_story(story_id)
         return speak(request, s["text"], s["language"])
 
-    @v1.post("/tts", response_class=Response, responses={**WAV_RESPONSE, **error(400)})
+    @v1.post("/tts", response_class=Response, responses={**WAV_RESPONSE, **error(400, 502, 503)})
     def tts(req: schemas.TtsRequest, request: Request) -> Response:
         """Read any text aloud, as WAV. Cached like story audio."""
         return speak(request, req.text, req.language)

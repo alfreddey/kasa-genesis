@@ -71,6 +71,15 @@ it("shows progress while audio is prepared, and an error if it fails", async () 
   expect(screen.getByRole("alert")).toHaveTextContent("audio could not be played");
 });
 
+it("offers to try the audio again after it fails", async () => {
+  mockApi(routes);
+  render(<StoryPlayer id="twi-greetings" />);
+  fireEvent.error(await screen.findByLabelText("Listen to Twi greetings"));
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.getByLabelText("Listen to Twi greetings")).toBeInTheDocument();
+});
+
 it("shows not found without a retry button", async () => {
   mockApi({});
   render(<StoryPlayer id="missing" />);
