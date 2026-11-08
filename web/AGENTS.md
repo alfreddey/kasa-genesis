@@ -16,6 +16,7 @@ src/app/                    Routes (App Router). Pages stay thin and render a co
   page.tsx                  "/" -> <StoryList />.
   stories/[id]/page.tsx     "/stories/:id" -> <StoryPlayer id=... />.
   not-found.tsx             404 page.
+  robots.ts, sitemap.ts     robots.txt and sitemap.xml (sitemap built from the live API).
   error.tsx, global-error.tsx  Error boundaries (page crash / root layout crash), "Try again".
   globals.css               All styles today (placeholder tokens in :root).
 src/components/             UI. One component per file, kebab-case names, test next to it.
@@ -26,6 +27,7 @@ src/components/             UI. One component per file, kebab-case names, test n
   status.tsx                <Loading> and <ErrorState> (with retry). Use these for every async state.
 src/lib/
   api.ts                    Typed API client: types, apiFetch, fetchStories/fetchStory/fetchLanguages, storyAudioUrl, ApiError.
+  seo.ts                    Server-side SEO helpers: siteUrl() (SITE_URL), failure-tolerant getStory/getStories, JSON-LD.
   use-api.ts                useApi(load, deps): loading/error/success state, abort on unmount, retry().
 src/test/fetch.ts           mockApi(routes): stubs global fetch with canned /api/v1 responses.
 vitest.config.mts           jsdom, globals, "@/..." path alias, setup file.
