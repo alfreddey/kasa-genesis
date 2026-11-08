@@ -106,3 +106,35 @@ def test_decode_wav_takes_first_channel_of_stereo():
 def test_voice_loads_by_name_with_options():
     synth = load_synthesizer("abena", abena={"api_key": "k", "voices": {"ewe": "x"}})
     assert isinstance(synth, AbenaSynthesizer) and synth.voice_for("ewe") == "x"
+
+
+def test_error_reports_status_and_retry_after():
+    post = FakePost(*[(503, {"retry-after": "7"}, b'{"message": "busy"}')] * 2)
+    with pytest.raises(AbenaError) as info:
+        make(post, retries=1).synthesize("a", "aka")
+    assert info.value.status == 503 and info.value.busy and info.value.retry_after == 7.0
+
+
+def test_credit_and_bad_request_errors_are_not_busy():
+    with pytest.raises(AbenaError) as info:
+        make(FakePost((402, {}, b"{}"))).synthesize("a", "aka")
+    assert not info.value.busy
+
+
+def test_finished_clips_are_kept_so_a_retry_resumes():
+    post = FakePost((200, {}, ok_body()), (503, {}, b"{}"), (200, {}, ok_body()))
+    synth = make(post, retries=0)
+    synth.synthesize("one", "aka")
+    with pytest.raises(AbenaError):
+        synth.synthesize("two", "aka")
+    synth.synthesize("one", "aka")  # served from kept clips, no new request
+    synth.synthesize("two", "aka")
+    assert [c[1]["text"] for c in post.calls] == ["one", "two", "two"]
+
+
+def test_oldest_clips_are_dropped_beyond_the_limit():
+    post = FakePost(*[(200, {}, ok_body())] * 3)
+    synth = make(post, keep_clips=1)
+    synth.synthesize("a", "aka")
+    synth.synthesize("b", "aka")
+    assert len(synth._clips) == 1

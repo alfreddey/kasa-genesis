@@ -38,6 +38,8 @@ type ErrorResponse = { detail: string };
 | --- | --- | --- |
 | 400 | Unsupported `language`, or text with nothing to read aloud (only spaces or punctuation) | `{"detail": "Unsupported language: xxx"}` |
 | 404 | Unknown story id (also for `/audio`) | `{"detail": "Story not found"}` |
+| 503 | The voice service (Abena) is busy or unreachable. Has a `Retry-After` header (seconds); try again then. Sentences already read are kept, so the retry continues where it stopped | `{"detail": "The voice is busy right now. Try again in a moment."}` |
+| 502 | The voice service refused this text or returned bad audio | `{"detail": "The voice service could not read this text."}` |
 | 422 | Request body or query fails validation (missing field, text over 5000 characters) | FastAPI's `{"detail": [{"loc", "msg", "type"}, ...]}` |
 
 ## Audio and caching

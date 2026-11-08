@@ -14,10 +14,12 @@ import base64
 import binascii
 import io
 import json
+import threading
 import time
 import urllib.error
 import urllib.request
 import wave
+from collections import OrderedDict
 from collections.abc import Callable, Sequence
 
 DEFAULT_BASE_URL = "https://abena.mobobi.com/playground/api/v1"
@@ -31,7 +33,21 @@ Post = Callable[[str, dict[str, object], dict[str, str], float], tuple[int, dict
 
 
 class AbenaError(RuntimeError):
-    """Abena refused or failed a request."""
+    """Abena refused or failed a request.
+
+    `status` is Abena's HTTP status (0 if it could not be reached). `busy` is true when
+    trying again later may work (rate limited, at capacity, unreachable), and
+    `retry_after` is how many seconds Abena asked us to wait, if it said.
+    """
+
+    def __init__(self, message: str, status: int = 0, retry_after: float | None = None) -> None:
+        super().__init__(message)
+        self.status = status
+        self.retry_after = retry_after
+
+    @property
+    def busy(self) -> bool:
+        return self.status in RETRY_STATUSES or self.status == 0
 
 
 def _urllib_post(
@@ -45,6 +61,8 @@ def _urllib_post(
             return res.status, dict(res.headers), res.read()
     except urllib.error.HTTPError as e:
         return e.code, dict(e.headers), e.read()
+    except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+        raise AbenaError(f"Could not reach Abena: {e}") from e
 
 
 def decode_wav(data: bytes) -> tuple[list[float], int]:
@@ -58,6 +76,14 @@ def decode_wav(data: bytes) -> tuple[list[float], int]:
     return [s / 32768 for s in pcm[::channels]], rate
 
 
+def _retry_after(headers: dict[str, str]) -> float | None:
+    value = {k.lower(): v for k, v in headers.items()}.get("retry-after")
+    try:
+        return float(value) if value else None
+    except ValueError:
+        return None
+
+
 class AbenaSynthesizer:
     def __init__(
         self,
@@ -69,6 +95,7 @@ class AbenaSynthesizer:
         retries: int = 3,
         post: Post = _urllib_post,
         sleep: Callable[[float], None] = time.sleep,
+        keep_clips: int = 512,
     ) -> None:
         self.api_key = api_key
         self.voices = {**DEFAULT_VOICES, **(voices or {})}
@@ -78,6 +105,11 @@ class AbenaSynthesizer:
         self.retries = retries
         self._post = post
         self._sleep = sleep
+        # Clips Abena already returned, so a story that fails halfway (Abena busy) resumes
+        # where it stopped on the next try instead of paying for every sentence again.
+        self._clips: OrderedDict[tuple[str, str], bytes] = OrderedDict()
+        self._keep_clips = keep_clips
+        self._lock = threading.Lock()
 
     def voice_for(self, language: str) -> str:
         try:
@@ -88,29 +120,36 @@ class AbenaSynthesizer:
     def synthesize(self, text: str, language: str) -> tuple[Sequence[float], int]:
         if len(text) > MAX_REQUEST_CHARS:
             raise ValueError(f"Abena accepts at most {MAX_REQUEST_CHARS} characters per request")
-        payload: dict[str, object] = {
-            "text": text,
-            "voice": self.voice_for(language),
-            "speed": self.speed,
-        }
+        voice = self.voice_for(language)
+        clip_key = (voice, text)
+        with self._lock:
+            clip = self._clips.get(clip_key)
+            if clip is not None:
+                self._clips.move_to_end(clip_key)
+        if clip is None:
+            clip = self._fetch(text, voice)
+            with self._lock:
+                self._clips[clip_key] = clip
+                while len(self._clips) > self._keep_clips:
+                    self._clips.popitem(last=False)
+        return decode_wav(clip)
+
+    def _fetch(self, text: str, voice: str) -> bytes:
+        payload: dict[str, object] = {"text": text, "voice": voice, "speed": self.speed}
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         for attempt in range(self.retries + 1):
             status, resp_headers, body = self._post(self.url, payload, headers, self.timeout)
+            retry_after = _retry_after(resp_headers)
             if status in RETRY_STATUSES and attempt < self.retries:
-                retry_after = {k.lower(): v for k, v in resp_headers.items()}.get("retry-after")
-                try:
-                    delay = float(retry_after) if retry_after else 2.0 * (attempt + 1)
-                except ValueError:
-                    delay = 2.0 * (attempt + 1)
-                self._sleep(min(delay, 30.0))
+                self._sleep(min(retry_after or 2.0 * (attempt + 1), 30.0))
                 continue
-            return self._parse(status, body)
+            return self._parse(status, body, retry_after)
         raise AbenaError("unreachable")  # pragma: no cover
 
     @staticmethod
-    def _parse(status: int, body: bytes) -> tuple[Sequence[float], int]:
+    def _parse(status: int, body: bytes, retry_after: float | None = None) -> bytes:
         try:
             data = json.loads(body)
         except ValueError:
@@ -121,8 +160,10 @@ class AbenaSynthesizer:
             detail = (
                 data.get("message") or data.get("error") or body[:200].decode("utf-8", "replace")
             )
-            raise AbenaError(f"Abena returned HTTP {status}: {detail}")
+            raise AbenaError(f"Abena returned HTTP {status}: {detail}", status, retry_after)
         try:
-            return decode_wav(base64.b64decode(data["audio_base64"]))
+            clip = base64.b64decode(data["audio_base64"])
+            decode_wav(clip)  # reject unreadable audio before it is kept
         except (KeyError, binascii.Error, wave.Error, EOFError) as e:
-            raise AbenaError(f"Abena returned unreadable audio: {e}") from e
+            raise AbenaError(f"Abena returned unreadable audio: {e}", status) from e
+        return clip

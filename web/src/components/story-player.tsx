@@ -21,6 +21,7 @@ export function StoryPlayer({ id }: { id: string }) {
   const story = useApi((signal) => fetchStory(id, signal), [id]);
   const [audio, setAudio] = useState<AudioStatus>("idle");
   const [readAlong, setReadAlong] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const { name } = useLanguages();
   const { isSaved, toggle } = useFavorites();
   const all = useApi((signal) => fetchStories(undefined, signal), []);
@@ -111,6 +112,7 @@ export function StoryPlayer({ id }: { id: string }) {
 
           {/* Audio is synthesized on first request, so the first play can take a while. */}
           <audio
+            key={attempt}
             controls
             preload="none"
             src={storyAudioUrl(id)}
@@ -126,6 +128,10 @@ export function StoryPlayer({ id }: { id: string }) {
           {audio === "error" && (
             <ErrorState
               error={new Error("The audio could not be played. Try again in a moment.")}
+              onRetry={() => {
+                setAudio("idle");
+                setAttempt((n) => n + 1);
+              }}
             />
           )}
 
