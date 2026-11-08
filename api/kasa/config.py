@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     # Override the Hugging Face model id per language, as JSON: {"aka": "org/model"}.
     tts_models: dict[str, str] = Field(default_factory=dict)
 
+    # Abena AI voice (KASA_VOICE=abena). Get a key from the Abena dashboard; empty uses
+    # their small no-key allowance. Voices map language code -> Abena voice id.
+    abena_api_key: str | None = None
+    abena_base_url: str = "https://abena.mobobi.com/playground/api/v1"
+    abena_voices: dict[str, str] = Field(default_factory=dict)
+
     @field_validator("allowed_origins", mode="before")
     @classmethod
     def _split_origins(cls, value: object) -> object:

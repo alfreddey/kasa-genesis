@@ -44,7 +44,17 @@ def _voice_id(settings: Settings, synth: Synthesizer | None) -> str:
     if synth is not None:
         cls = type(synth)
         return getattr(synth, "cache_id", None) or f"{cls.__module__}.{cls.__qualname__}"
+    if settings.kasa_voice == "abena":
+        return f"abena:{json.dumps(settings.abena_voices, sort_keys=True)}"
     return f"{settings.kasa_voice}:{json.dumps(settings.tts_models, sort_keys=True)}"
+
+
+def abena_options(settings: Settings) -> dict[str, Any]:
+    return {
+        "api_key": settings.abena_api_key,
+        "base_url": settings.abena_base_url,
+        "voices": settings.abena_voices,
+    }
 
 
 def _wav(request: Request, audio: bytes, key: str) -> Response:
@@ -78,7 +88,9 @@ def create_app(
     voice_id = _voice_id(settings, synth)
     # The voice is built here but the real model only loads on the first synthesis,
     # so startup and /healthz stay fast.
-    app.state.synth = synth or load_synthesizer(settings.kasa_voice, settings.tts_models)
+    app.state.synth = synth or load_synthesizer(
+        settings.kasa_voice, settings.tts_models, abena_options(settings)
+    )
     app.state.speaker = Speaker(
         app.state.synth, make_cache(settings.cache_dir, settings.cache_max_items), voice_id
     )

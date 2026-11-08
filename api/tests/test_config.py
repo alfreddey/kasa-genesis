@@ -45,3 +45,11 @@ def test_tts_models_reach_the_mms_voice():
     synth = load_synthesizer("mms", {"aka": "me/twi-v2"})
     assert synth.model_id("aka") == "me/twi-v2"
     assert synth.model_id("ewe") == "facebook/mms-tts-ewe"
+
+
+def test_abena_settings_default_and_override(monkeypatch):
+    monkeypatch.delenv("ABENA_API_KEY", raising=False)
+    s = Settings(_env_file=None)
+    assert s.abena_api_key is None and s.abena_voices == {}
+    s = Settings(_env_file=None, abena_api_key="k", abena_voices={"ewe": "x"})
+    assert s.abena_api_key == "k"

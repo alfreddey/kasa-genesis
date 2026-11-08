@@ -14,7 +14,7 @@ Why the normalizer matters: TTS tokenizers silently drop characters outside thei
 
 ## Settings and voices
 
-`create_app` builds a `config.Settings` (pydantic-settings: env vars, then `.env` at the repo root or current folder). The voice is `voices.load_synthesizer(settings.kasa_voice, settings.tts_models)` (default `mms`; `TTS_MODELS` overrides the model per language). `tone` and `silent` are model-free placeholders for UI work and load tests. `MmsSynthesizer` loads one `VitsModel` per language on first use and caches it, guarded by a lock, so startup and `/healthz` never load a model.
+`create_app` builds a `config.Settings` (pydantic-settings: env vars, then `.env` at the repo root or current folder). The voice is `voices.load_synthesizer(settings.kasa_voice, settings.tts_models)` (default `mms`; `TTS_MODELS` overrides the model per language). `abena` calls the hosted Abena AI API (`kasa/abena.py`; settings `ABENA_API_KEY`, `ABENA_BASE_URL`, `ABENA_VOICES` map language to Abena voice id, defaults Twi `abena_twi_high`, Ewe `mawuli_ewe`). It retries 429/503 honouring `Retry-After`, takes 500 characters at most per request, and its voice map is part of the cache key. Abena publishes no paid pricing or commercial terms yet: confirm before launch. `tone` and `silent` are model-free placeholders for UI work and load tests. `MmsSynthesizer` loads one `VitsModel` per language on first use and caches it, guarded by a lock, so startup and `/healthz` never load a model.
 
 The audio cache is `DiskAudioCache(CACHE_DIR)` when set, otherwise `MemoryAudioCache(CACHE_MAX_ITEMS)`. Bump `cache.AUDIO_VERSION` when a change to `tts.py` should invalidate cached audio.
 

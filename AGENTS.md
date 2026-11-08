@@ -18,7 +18,8 @@ api/                    Python API (FastAPI). Has its own AGENTS.md.
   kasa/config.py        Settings from env / .env via pydantic-settings.
   kasa/cache.py         Audio cache (memory or CACHE_DIR) and the Speaker that uses it.
   kasa/tts.py           Synthesizer protocol, sentence splitting, WAV encoding, MmsSynthesizer.
-  kasa/voices.py        Picks the voice from KASA_VOICE: mms, tone, silent, or "module:attribute".
+  kasa/voices.py        Picks the voice from KASA_VOICE: mms, abena, tone, silent, or "module:attribute".
+  kasa/abena.py         AbenaSynthesizer: hosted Abena AI voice for Twi and Ewe (ABENA_API_KEY, ABENA_BASE_URL, ABENA_VOICES).
   kasa/flags.py         Feature flags (FLAGS registry, KASA_FLAGS env var, GET /api/v1/flags).
   kasa/say.py           CLI: python -m kasa.say writes one WAV per voice to compare them.
   kasa/text.py          normalize_text(): NFC, look-alike letters (Greek ε -> ɛ), spacing. Shared by training and inference.
@@ -84,7 +85,7 @@ Without make: `cd api && python3 -m venv .venv && . .venv/bin/activate && pip in
 - Language codes are ISO 639-3 (`aka`, `ewe`), and every story's `language` must be in `LANGUAGES` (a test checks this).
 - Before you add or edit a story, read `docs/content-guide.md` (spelling per language, writing rules for the voice, rights). Never "fix" spelling in a language you cannot verify; ask a native speaker.
 - Story text uses the proper letters (ɛ, ɔ, ŋ, ƒ, ʋ), not look-alikes such as Greek ε, and is saved in Unicode NFC. Files are UTF-8. A test fails if a bundled story would change under `normalize_text`.
-- One test file per module: `test_api.py`, `test_tts.py`, `test_text.py`, `test_stories.py`, `test_voices.py`, `test_flags.py`, `test_say.py`.
+- One test file per module: `test_abena.py`, `test_api.py`, `test_tts.py`, `test_text.py`, `test_stories.py`, `test_voices.py`, `test_flags.py`, `test_say.py`.
 - `kasa.app` builds its voice and flags at import, from `KASA_VOICE` and `KASA_FLAGS`. Tests pass `synth=` and `flags=` to `create_app` instead of setting env vars.
 - Never commit weights, datasets or generated audio; `experiments/*/output/` is ignored for that.
 - Branches: `claude/...` for agent work. Small PRs that reference the issue they close. Commits and PR titles use Conventional Commits (see CONTRIBUTING.md).
