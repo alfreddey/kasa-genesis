@@ -53,6 +53,14 @@ class Settings(BaseSettings):
     max_concurrent_synthesis: int = Field(default=2, ge=1)
     synthesis_wait_seconds: float = Field(default=10.0, ge=0)
 
+    # Logging. LOG_JSON=true writes one JSON object per line (use it in production).
+    log_level: str = "INFO"
+    log_json: bool = False
+    # GET /metrics (Prometheus). When METRICS_TOKEN is set, callers must send
+    # "Authorization: Bearer <token>"; keep /metrics off the public internet either way.
+    metrics_enabled: bool = True
+    metrics_token: str | None = None
+
     # Abena AI voice (KASA_VOICE=abena). Get a key from the Abena dashboard; empty uses
     # their small no-key allowance. Voices map language code -> Abena voice id.
     abena_api_key: str | None = None
