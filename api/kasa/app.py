@@ -22,11 +22,19 @@ from .config import Settings
 from .flags import parse_flags
 from .languages import LANGUAGES
 from .limits import Busy, RateLimiter, SynthesisGate
+from .observability import (
+    Metrics,
+    configure_logging,
+    monotonic,
+    new_request_id,
+    request_id_var,
+)
 from .stories import load_stories
 from .tts import Synthesizer
 from .voices import load_synthesizer
 
 log = logging.getLogger(__name__)
+request_log = logging.getLogger("kasa.request")
 
 STATIC = Path(__file__).resolve().parent / "static"
 API_PREFIX = "/api/v1"
@@ -90,6 +98,36 @@ def create_app(
         allow_headers=["Content-Type", "If-None-Match"],
         expose_headers=["ETag"],
     )
+    configure_logging(settings.log_level, settings.log_json)
+    metrics = Metrics()
+
+    @app.middleware("http")
+    async def observe(request: Request, call_next: Any) -> Response:
+        """Gives each request an id, logs it without personal data, and counts it."""
+        rid = new_request_id(request.headers.get("x-request-id"))
+        token = request_id_var.set(rid)
+        started = monotonic()
+        status = 500
+        try:
+            response: Response = await call_next(request)
+            status = response.status_code
+            response.headers["X-Request-ID"] = rid
+            return response
+        finally:
+            elapsed = monotonic() - started
+            route = getattr(request.scope.get("route"), "path", "unmatched")
+            metrics.observe(request.method, route, status, elapsed)
+            request_log.info(
+                "request",
+                extra={
+                    "method": request.method,
+                    "route": route,
+                    "status": status,
+                    "duration_ms": round(elapsed * 1000, 1),
+                },
+            )
+            request_id_var.reset(token)
+
     voice_id = _voice_id(settings, synth)
     # The voice is built here but the real model only loads on the first synthesis,
     # so startup and /healthz stay fast.
@@ -163,6 +201,15 @@ def create_app(
     def healthz() -> schemas.Health:
         """Liveness check for Docker and load balancers. Never loads the speech model."""
         return schemas.Health(status="ok")
+
+    if settings.metrics_enabled:
+
+        @app.get("/metrics", include_in_schema=False)
+        def metrics_endpoint(request: Request) -> Response:
+            expected = settings.metrics_token
+            if expected and request.headers.get("authorization") != f"Bearer {expected}":
+                raise HTTPException(401, "Metrics need a bearer token.")
+            return Response(metrics.render(), media_type="text/plain; version=0.0.4")
 
     v1 = APIRouter(prefix=API_PREFIX, tags=["v1"])
 

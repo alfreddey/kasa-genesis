@@ -18,6 +18,10 @@ Why the normalizer matters: TTS tokenizers silently drop characters outside thei
 
 The audio cache is `DiskAudioCache(CACHE_DIR)` when set, otherwise `MemoryAudioCache(CACHE_MAX_ITEMS)`. Bump `cache.AUDIO_VERSION` when a change to `tts.py` should invalidate cached audio.
 
+## Logs and metrics
+
+`kasa/observability.py` (#39): a middleware in `create_app` gives every request an id (`X-Request-ID`, reused when safe), logs one line without personal data and counts it in `Metrics`, served at `GET /metrics` (Prometheus text; `METRICS_TOKEN`, `METRICS_ENABLED`, `LOG_LEVEL`, `LOG_JSON`). Labels use route templates only. Never log story text, queries or client addresses. See `docs/observability.md`.
+
 ## Endpoints
 
 The contract is in `API.md`; models in `kasa/schemas.py`, routes in `kasa/app.py`. `GET /` serves the temporary `kasa/static/index.html`. After changing a route or model, run `make openapi` to refresh `openapi.json` (`tests/test_api.py` fails if it is stale).
