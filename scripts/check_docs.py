@@ -151,6 +151,7 @@ def warnings(agents: list[Path]) -> list[str]:
 def run() -> tuple[list[str], list[str]]:
     agents = walk("AGENTS.md")
     docs = agents + [ROOT / "README.md", ROOT / "CONTRIBUTING.md"] + walk("docs/*.md")
+    docs += walk("API.md")
     docs = [d for d in docs if d.exists()]
     errors = (
         check_rule(agents)

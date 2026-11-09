@@ -20,6 +20,7 @@ api/                    Python API (FastAPI). Has its own AGENTS.md.
   kasa/tts.py           Synthesizer protocol, sentence splitting, WAV encoding, MmsSynthesizer.
   kasa/voices.py        Picks the voice from KASA_VOICE: mms, abena, tone, silent, or "module:attribute".
   kasa/abena.py         AbenaSynthesizer: hosted Abena AI voice for Twi and Ewe (ABENA_API_KEY, ABENA_BASE_URL, ABENA_VOICES).
+  kasa/limits.py        Per-IP rate limit and synthesis concurrency cap (#17); settings in .env.example.
   kasa/flags.py         Feature flags (FLAGS registry, KASA_FLAGS env var, GET /api/v1/flags).
   kasa/say.py           CLI: python -m kasa.say writes one WAV per voice to compare them.
   kasa/text.py          normalize_text(): NFC, look-alike letters (Greek ε -> ɛ), spacing. Shared by training and inference.

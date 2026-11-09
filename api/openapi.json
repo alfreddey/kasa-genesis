@@ -253,6 +253,16 @@
             },
             "description": "Not Found"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
           "502": {
             "content": {
               "application/json": {
@@ -292,7 +302,7 @@
           "v1"
         ],
         "summary": "Tts",
-        "description": "Read any text aloud, as WAV. Cached like story audio.",
+        "description": "Read any text aloud, as WAV. Cached like story audio.\n\nReturns 403 when the server has free-text synthesis turned off\n(ALLOW_FREE_TEXT_TTS=false), and 429 with Retry-After when a client asks for too\nmany new syntheses.",
         "operationId": "tts_api_v1_tts_post",
         "requestBody": {
           "content": {
@@ -321,6 +331,26 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
             "content": {
               "application/json": {
                 "schema": {

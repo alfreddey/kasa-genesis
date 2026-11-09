@@ -38,7 +38,9 @@ type ErrorResponse = { detail: string };
 | --- | --- | --- |
 | 400 | Unsupported `language`, or text with nothing to read aloud (only spaces or punctuation) | `{"detail": "Unsupported language: xxx"}` |
 | 404 | Unknown story id (also for `/audio`) | `{"detail": "Story not found"}` |
-| 503 | The voice service (Abena) is busy or unreachable. Has a `Retry-After` header (seconds); try again then. Sentences already read are kept, so the retry continues where it stopped | `{"detail": "The voice is busy right now. Try again in a moment."}` |
+| 403 | `POST /api/v1/tts` only: the server has free-text synthesis turned off (`ALLOW_FREE_TEXT_TTS=false`). Story audio still works | `{"detail": "Reading free text is turned off on this server."}` |
+| 429 | Too many new syntheses from this IP (`TTS_RATE_LIMIT_PER_MINUTE`, default 30). Has a `Retry-After` header (seconds). Cached audio never counts | `{"detail": "Too many requests. Try again in a moment."}` |
+| 503 | The voice service is busy: either Abena says so, or `MAX_CONCURRENT_SYNTHESIS` syntheses are already running and none freed up within `SYNTHESIS_WAIT_SECONDS`. Has a `Retry-After` header (seconds); try again then. Sentences already read are kept, so the retry continues where it stopped | `{"detail": "The voice is busy right now. Try again in a moment."}` |
 | 502 | The voice service refused this text or returned bad audio | `{"detail": "The voice service could not read this text."}` |
 | 422 | Request body or query fails validation (missing field, text over 5000 characters) | FastAPI's `{"detail": [{"loc", "msg", "type"}, ...]}` |
 

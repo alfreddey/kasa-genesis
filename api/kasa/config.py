@@ -43,6 +43,16 @@ class Settings(BaseSettings):
     # Override the Hugging Face model id per language, as JSON: {"aka": "org/model"}.
     tts_models: dict[str, str] = Field(default_factory=dict)
 
+    # Free-text synthesis (POST /api/v1/tts). Turn off in production so the public only
+    # hears stored story audio.
+    allow_free_text_tts: bool = True
+    # Most new syntheses per client IP per minute (cached audio is free). 0 means no limit.
+    tts_rate_limit_per_minute: int = Field(default=30, ge=0)
+    # Most syntheses running at once; extra requests wait up to SYNTHESIS_WAIT_SECONDS,
+    # then get a 503 with Retry-After.
+    max_concurrent_synthesis: int = Field(default=2, ge=1)
+    synthesis_wait_seconds: float = Field(default=10.0, ge=0)
+
     # Abena AI voice (KASA_VOICE=abena). Get a key from the Abena dashboard; empty uses
     # their small no-key allowance. Voices map language code -> Abena voice id.
     abena_api_key: str | None = None

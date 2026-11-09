@@ -21,6 +21,7 @@ from .cache import Speaker, make_cache
 from .config import Settings
 from .flags import parse_flags
 from .languages import LANGUAGES
+from .limits import Busy, RateLimiter, SynthesisGate
 from .stories import load_stories
 from .tts import Synthesizer
 from .voices import load_synthesizer
@@ -101,6 +102,8 @@ def create_app(
     app.state.flags = parse_flags(settings.kasa_flags) if flags is None else flags
     app.state.stories = load_stories(settings.stories_dir) if stories is None else stories
     app.state.settings = settings
+    limiter = RateLimiter(settings.tts_rate_limit_per_minute)
+    gate = SynthesisGate(settings.max_concurrent_synthesis, settings.synthesis_wait_seconds)
 
     def get_story(story_id: str) -> dict[str, Any]:
         story = app.state.stories.get(story_id)
@@ -114,18 +117,40 @@ def create_app(
 
     def speak(request: Request, text: str, language: str) -> Response:
         check_language(language)
+        speaker = app.state.speaker
+        # Cached audio is cheap, so only new syntheses are rate limited and queued.
+        needs_synthesis = not speaker.is_cached(text, language)
+        if needs_synthesis:
+            client = request.client.host if request.client else "unknown"
+            wait = limiter.hit(client)
+            if wait is not None:
+                raise HTTPException(
+                    429,
+                    "Too many requests. Try again in a moment.",
+                    headers={"Retry-After": str(int(wait) + 1)},
+                )
         try:
-            audio, key = app.state.speaker.speak(text, language)
+            if needs_synthesis:
+                with gate.slot():
+                    audio, key = speaker.speak(text, language)
+            else:
+                audio, key = speaker.speak(text, language)
+        except Busy as e:
+            raise HTTPException(
+                503,
+                "The voice is busy right now. Try again in a moment.",
+                headers={"Retry-After": "5"},
+            ) from e
         except ValueError as e:
             raise HTTPException(400, str(e)) from e
         except AbenaError as e:
             log.warning("Abena failed: %s", e)
             if e.busy:
-                wait = int(max(e.retry_after or 0, 5))
+                retry = int(max(e.retry_after or 0, 5))
                 raise HTTPException(
                     503,
                     "The voice is busy right now. Try again in a moment.",
-                    headers={"Retry-After": str(wait)},
+                    headers={"Retry-After": str(retry)},
                 ) from e
             raise HTTPException(502, "The voice service could not read this text.") from e
         return _wav(request, audio, key)
@@ -173,7 +198,7 @@ def create_app(
     @v1.get(
         "/stories/{story_id}/audio",
         response_class=Response,
-        responses={**WAV_RESPONSE, **error(400, 404, 502, 503)},
+        responses={**WAV_RESPONSE, **error(400, 404, 429, 502, 503)},
     )
     def story_audio(story_id: str, request: Request) -> Response:
         """The whole story read aloud, as WAV. Usable directly as an <audio> src.
@@ -184,9 +209,20 @@ def create_app(
         s = get_story(story_id)
         return speak(request, s["text"], s["language"])
 
-    @v1.post("/tts", response_class=Response, responses={**WAV_RESPONSE, **error(400, 502, 503)})
+    @v1.post(
+        "/tts",
+        response_class=Response,
+        responses={**WAV_RESPONSE, **error(400, 403, 429, 502, 503)},
+    )
     def tts(req: schemas.TtsRequest, request: Request) -> Response:
-        """Read any text aloud, as WAV. Cached like story audio."""
+        """Read any text aloud, as WAV. Cached like story audio.
+
+        Returns 403 when the server has free-text synthesis turned off
+        (ALLOW_FREE_TEXT_TTS=false), and 429 with Retry-After when a client asks for too
+        many new syntheses.
+        """
+        if not settings.allow_free_text_tts:
+            raise HTTPException(403, "Reading free text is turned off on this server.")
         return speak(request, req.text, req.language)
 
     app.include_router(v1)
