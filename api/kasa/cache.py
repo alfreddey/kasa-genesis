@@ -112,6 +112,9 @@ class Speaker:
     def key(self, text: str, language: str) -> str:
         return audio_key(self.voice_id, language, text)
 
+    def is_cached(self, text: str, language: str) -> bool:
+        return self.cache.get(self.key(text, language)) is not None
+
     def speak(self, text: str, language: str) -> tuple[bytes, str]:
         """Return (WAV bytes, cache key). Raises ValueError if there is nothing to read."""
         key = self.key(text, language)
