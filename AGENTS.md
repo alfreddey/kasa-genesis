@@ -34,6 +34,7 @@ web/                    Next.js 15 frontend (story list + player). Has its own A
 stories/                Story content as JSON, shared by api/ and web/.
 docs/                   Design notes and research. docs/experimentation.md: how to try ideas fast.
                         docs/content-guide.md: story fields, spelling rules, rights, review checklist.
+                        docs/api.md: curl examples, versioning rule, how to change the contract.
                         docs/db-schema.md: the database design (#71). docs/adr/: decision records.
 experiments/            Dated experiment folders (write-up + code). _template/ is the starter.
 .env.example            Every setting the API reads (ALLOWED_ORIGINS, CACHE_DIR, KASA_VOICE, ...).

@@ -2,7 +2,7 @@
 
 The contract between the API and the web app (`web/`). The machine-readable version is
 [`openapi.json`](openapi.json) (also served at `GET /openapi.json`, with interactive docs
-at `/docs`). Generate TypeScript types from that file rather than copying shapes by hand.
+at `/docs`; set `ENABLE_DOCS=false` in production to hide `/docs` and `/redoc`). Generate TypeScript types from that file rather than copying shapes by hand.
 
 - Base path: `/api/v1`. Everything under it is stable: fields are only ever added. A
   breaking change gets a new prefix (`/api/v2`) and the old one keeps working for a while.

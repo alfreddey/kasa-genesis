@@ -1,12 +1,14 @@
 /**
  * Typed client for the Kasa API (/api/v1, issue #4).
  * Every call goes through apiFetch, so the base URL, timeout and error shape live in one place.
- * Replace the hand-written types with ones generated from api/openapi.json once #27 lands.
+ * Types come from api/openapi.json (api-types.gen.ts, made by `npm run generate:api`).
  */
 
-export type Language = { code: string; name: string };
-export type StorySummary = { id: string; title: string; language: string };
-export type Story = StorySummary & { text: string };
+import type { components } from "./api-types.gen";
+
+export type Language = components["schemas"]["Language"];
+export type StorySummary = components["schemas"]["StorySummary"];
+export type Story = components["schemas"]["Story"];
 
 const DEFAULT_API_URL = "http://localhost:8000";
 const TIMEOUT_MS = 10_000;

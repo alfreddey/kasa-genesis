@@ -40,6 +40,7 @@ jobs:
               - '.github/workflows/ci.yml'
             web:
               - 'web/**'
+              - 'api/openapi.json'
               - '.github/workflows/ci.yml'
             docs:
               - '**/*.md'
@@ -119,6 +120,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Lint (ESLint + Prettier)
         run: npm run lint
+      - name: API types match api/openapi.json
+        run: npm run check:api
       - name: Typecheck
         run: npm run typecheck
       - name: Test (Vitest)

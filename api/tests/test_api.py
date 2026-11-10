@@ -232,6 +232,14 @@ def test_every_v1_endpoint_is_in_the_schema():
     assert "audio/wav" in paths["/api/v1/tts"]["post"]["responses"]["200"]["content"]
 
 
+def test_interactive_docs_can_be_turned_off():
+    on = TestClient(create_app(synth=FakeSynth(), settings=make_settings()))
+    off = TestClient(create_app(synth=FakeSynth(), settings=make_settings(enable_docs=False)))
+    assert on.get("/docs").status_code == 200
+    assert off.get("/docs").status_code == 404 and off.get("/redoc").status_code == 404
+    assert off.get("/openapi.json").status_code == 200
+
+
 def test_committed_openapi_json_is_current():
     committed = Path(__file__).resolve().parents[1] / "openapi.json"
     assert json.loads(committed.read_text(encoding="utf-8")) == openapi.schema(), (
