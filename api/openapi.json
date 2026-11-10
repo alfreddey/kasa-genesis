@@ -244,6 +244,16 @@
             },
             "description": "Part of the audio: the bytes asked for in the Range header."
           },
+          "416": {
+            "description": "The Range header starts past the end of the audio.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -263,16 +273,6 @@
               }
             },
             "description": "Not Found"
-          },
-          "416": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Range Not Satisfiable"
           },
           "429": {
             "content": {

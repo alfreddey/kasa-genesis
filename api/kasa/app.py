@@ -53,6 +53,12 @@ RANGE_RESPONSE: dict[int | str, dict[str, Any]] = {
         "content": {"audio/wav": {"schema": {"type": "string", "format": "binary"}}},
         "description": "Part of the audio: the bytes asked for in the Range header.",
     },
+    # Described here because the standard phrase for 416 differs between Python versions,
+    # which would make the generated openapi.json depend on who generated it.
+    416: {
+        "model": schemas.ErrorResponse,
+        "description": "The Range header starts past the end of the audio.",
+    },
 }
 _RANGE = re.compile(r"bytes=(\d*)-(\d*)")
 
@@ -297,7 +303,7 @@ def create_app(
     @v1.get(
         "/stories/{story_id}/audio",
         response_class=Response,
-        responses={**WAV_RESPONSE, **RANGE_RESPONSE, **error(400, 404, 416, 429, 502, 503)},
+        responses={**WAV_RESPONSE, **RANGE_RESPONSE, **error(400, 404, 429, 502, 503)},
     )
     def story_audio(story_id: str, request: Request) -> Response:
         """The whole story read aloud, as WAV. Usable directly as an <audio> src.

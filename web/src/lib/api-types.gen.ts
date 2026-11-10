@@ -475,7 +475,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Range Not Satisfiable */
+            /** @description The Range header starts past the end of the audio. */
             416: {
                 headers: {
                     [name: string]: unknown;
