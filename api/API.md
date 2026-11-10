@@ -38,6 +38,7 @@ type ErrorResponse = { detail: string };
 | --- | --- | --- |
 | 400 | Unsupported `language`, or text with nothing to read aloud (only spaces or punctuation) | `{"detail": "Unsupported language: xxx"}` |
 | 404 | Unknown story id (also for `/audio`) | `{"detail": "Story not found"}` |
+| 416 | `GET /api/v1/stories/{id}/audio` only: the `Range` header starts past the end of the audio. Has a `Content-Range: bytes */<size>` header | `{"detail": "That part of the audio does not exist."}` |
 | 403 | `POST /api/v1/tts` only: the server has free-text synthesis turned off (`ALLOW_FREE_TEXT_TTS=false`). Story audio still works | `{"detail": "Reading free text is turned off on this server."}` |
 | 429 | Too many new syntheses from this IP (`TTS_RATE_LIMIT_PER_MINUTE`, default 30). Has a `Retry-After` header (seconds). Cached audio never counts | `{"detail": "Too many requests. Try again in a moment."}` |
 | 503 | The voice service is busy: either Abena says so, or `MAX_CONCURRENT_SYNTHESIS` syntheses are already running and none freed up within `SYNTHESIS_WAIT_SECONDS`. Has a `Retry-After` header (seconds); try again then. Sentences already read are kept, so the retry continues where it stopped | `{"detail": "The voice is busy right now. Try again in a moment."}` |
@@ -55,6 +56,10 @@ the normalized text.
 - Audio responses carry an `ETag` and `Cache-Control: public, max-age=3600`. Send
   `If-None-Match` with the ETag to get `304 Not Modified`. Browsers do this on their own.
 - Two requests for the same audio at the same moment wait for a single synthesis.
+- `GET /api/v1/stories/{id}/audio` answers `Range` requests with `206 Partial Content`
+  (`Accept-Ranges: bytes`). Browsers need this to seek inside an `<audio>`: without it the
+  player's skip buttons and progress bar cannot move. One range per request is understood
+  (`bytes=0-99`, `bytes=100-`, `bytes=-50`); a range that starts past the end gets `416`.
 
 ## CORS
 

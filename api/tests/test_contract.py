@@ -29,6 +29,18 @@ CASES = [
     ("get", "/api/v1/stories/{story_id}", "/api/v1/stories/missing", {}),  # 404
     ("get", "/api/v1/stories/{story_id}/audio", "/api/v1/stories/a-twi/audio", {}),
     ("get", "/api/v1/stories/{story_id}/audio", "/api/v1/stories/missing/audio", {}),  # 404
+    (
+        "get",
+        "/api/v1/stories/{story_id}/audio",
+        "/api/v1/stories/a-twi/audio",
+        {"headers": {"Range": "bytes=0-9"}},  # 206
+    ),
+    (
+        "get",
+        "/api/v1/stories/{story_id}/audio",
+        "/api/v1/stories/a-twi/audio",
+        {"headers": {"Range": "bytes=99999999-"}},  # 416
+    ),
     ("post", "/api/v1/tts", "/api/v1/tts", {"json": {"text": "Akwaaba.", "language": "aka"}}),
     ("post", "/api/v1/tts", "/api/v1/tts", {"json": {"text": "Akwaaba.", "language": "xxx"}}),
     ("post", "/api/v1/tts", "/api/v1/tts", {"json": {"text": "...", "language": "aka"}}),  # 422

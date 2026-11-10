@@ -7,11 +7,13 @@ import { shortLanguageName, storyOfTheDay } from "@/lib/home";
 import { useApi } from "@/lib/use-api";
 import { AppShell } from "./app-shell";
 import { CoverArt } from "./cover-art";
-import { PersonIcon, PlayIcon } from "./icons";
+import { ArrowRightIcon, PlayIcon, SparkleIcon } from "./icons";
+import { LanguageFilter } from "./language-filter";
+import { Mascot } from "./mascot";
 import { ErrorState, Loading } from "./status";
 import { StoryCard, storyHref } from "./story-card";
 
-/** The Home page: greeting, language tiles, the story of the day and a shelf of the rest. */
+/** The Home page: Ananse's greeting, the language picker, the story of the day and a shelf. */
 export function Home() {
   const [language, setLanguage] = useState("");
   const languages = useApi((signal) => fetchLanguages(signal), []);
@@ -26,50 +28,28 @@ export function Home() {
 
   return (
     <AppShell current="Home">
-      <header className="home-header">
-        <div className="home-greeting">
+      <header className="greeting">
+        <div className="greeting-text">
           <h1>Akwaaba!</h1>
           <p>What story shall we hear today?</p>
+          <span className="ribbon" aria-hidden="true" />
         </div>
-
-        {languages.status === "success" && languages.data.length > 0 && (
-          <div className="language-filter">
-            <div className="segmented glass" role="group" aria-label="Language">
-              <button
-                type="button"
-                className="segment"
-                aria-pressed={language === ""}
-                onClick={() => setLanguage("")}
-              >
-                All
-              </button>
-              {languages.data.map((l) => (
-                <button
-                  key={l.code}
-                  type="button"
-                  className="segment"
-                  aria-pressed={language === l.code}
-                  onClick={() => setLanguage(l.code)}
-                >
-                  {languageName(l.code)}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="child-avatar" aria-hidden="true">
-          <PersonIcon />
-        </div>
+        <Mascot hanging className="greeting-mascot mascot-swing" />
       </header>
 
+      {languages.status === "success" && languages.data.length > 0 && (
+        <div className="section">
+          <LanguageFilter languages={languages.data} value={language} onChange={setLanguage} />
+        </div>
+      )}
+
       {stories.status === "loading" && (
-        <div className="featured-wrap">
+        <div className="section">
           <Loading label="Loading stories…" />
         </div>
       )}
       {stories.status === "error" && (
-        <div className="featured-wrap">
+        <div className="section">
           <ErrorState error={stories.error} onRetry={stories.retry} />
         </div>
       )}
@@ -93,7 +73,7 @@ function Shelves({
   const featured = storyOfTheDay(stories);
   if (!featured) {
     return (
-      <div className="featured-wrap">
+      <div className="section">
         <p className="status">No stories yet.</p>
       </div>
     );
@@ -102,21 +82,25 @@ function Shelves({
 
   return (
     <>
-      <div className="featured-wrap">
+      <div className="section">
         <Link href={storyHref(featured)} className="featured">
-          <CoverArt id={featured.id}>
-            <span className="cover-tag glass glass-on-art">{languageName(featured.language)}</span>
-          </CoverArt>
-          <span className="featured-panel glass glass-on-art">
-            <span className="featured-text">
-              <p className="featured-kicker">Story of the day</p>
-              <span className="featured-title" lang={featured.language}>
-                {featured.title}
-              </span>
-              <p className="featured-meta">{languageName(featured.language)}</p>
+          <span className="featured-art">
+            <CoverArt id={featured.id} />
+            <span className="chip chip-on-art">{languageName(featured.language)}</span>
+          </span>
+          <span className="featured-body">
+            <span className="kicker">
+              <SparkleIcon />
+              Story of the day
             </span>
-            <span className="play-button" aria-hidden="true">
-              <PlayIcon />
+            <span className="featured-title" lang={featured.language}>
+              {featured.title}
+            </span>
+            <span className="featured-cta">
+              <span className="play-fab" aria-hidden="true">
+                <PlayIcon />
+              </span>
+              <span className="featured-cta-label">Listen</span>
             </span>
           </span>
         </Link>
@@ -124,10 +108,11 @@ function Shelves({
 
       {others.length > 0 && (
         <>
-          <div className="shelf-header">
+          <div className="section shelf-header">
             <h2>New stories</h2>
-            <Link href="/library" className="glass">
+            <Link href="/library" className="btn btn-paper btn-small">
               See all
+              <ArrowRightIcon />
             </Link>
           </div>
           <ul className="shelf" aria-label="New stories">

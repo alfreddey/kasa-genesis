@@ -1,14 +1,18 @@
 import type { ReactNode } from "react";
+import { Scene } from "./scene";
 
-/** The simple page frame (site header and a narrow column) for pages that are not Home. */
+/** The simple frame for the error and 404 pages: the scene, the app name and one paper card. */
 export function PlainPage({ children }: { children: ReactNode }) {
   return (
     <div className="plain-page">
-      <header className="site-header">
-        <h1>Kasa Genesis</h1>
-        <p className="muted">Stories in Ghanaian languages, read aloud.</p>
-      </header>
-      {children}
+      <Scene />
+      <div className="plain-column">
+        <header className="site-header">
+          <h1>Kasa Genesis</h1>
+          <p>Stories in Ghanaian languages, read aloud.</p>
+        </header>
+        <div className="plain-card paper">{children}</div>
+      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { fetchStories } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { useLanguages } from "@/lib/use-languages";
 import { AppShell } from "./app-shell";
+import { SearchIcon } from "./icons";
 import { LanguageFilter } from "./language-filter";
 import { ErrorState, Loading } from "./status";
 import { StoryGrid } from "./story-grid";
@@ -25,8 +26,9 @@ export function Library() {
         <p>Pick a story to hear.</p>
       </header>
 
-      <div className="page-controls">
-        <label className="search glass">
+      <div className="section page-controls">
+        <label className="search">
+          <SearchIcon />
           <span className="visually-hidden">Search stories</span>
           <input
             type="search"
@@ -40,7 +42,7 @@ export function Library() {
         )}
       </div>
 
-      <div className="page-body">
+      <div className="section">
         {stories.status === "loading" && <Loading label="Loading stories…" />}
         {stories.status === "error" && <ErrorState error={stories.error} onRetry={stories.retry} />}
         {stories.status === "success" &&

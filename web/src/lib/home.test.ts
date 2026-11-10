@@ -1,5 +1,12 @@
 import { expect, it } from "vitest";
-import { COVER_PALETTES, coverPalette, shortLanguageName, storyOfTheDay } from "./home";
+import {
+  COVER_PALETTES,
+  COVER_SCENES,
+  coverPalette,
+  coverScene,
+  shortLanguageName,
+  storyOfTheDay,
+} from "./home";
 
 const story = (id: string) => ({ id, title: id, language: "aka" });
 
@@ -8,6 +15,18 @@ it("gives the same cover palette to the same story, always one of the four", () 
   for (const id of ["a", "twi-greetings", "ewe-greetings", "x".repeat(40)]) {
     expect(COVER_PALETTES).toContain(coverPalette(id));
   }
+});
+
+it("gives the same cover scene to the same story, picked apart from the palette", () => {
+  expect(coverScene("twi-greetings")).toBe(coverScene("twi-greetings"));
+  const pairs = new Set<string>();
+  for (let i = 0; i < 400; i++) {
+    const id = `story-${i}`;
+    expect(COVER_SCENES).toContain(coverScene(id));
+    pairs.add(`${coverScene(id)}/${coverPalette(id)}`);
+  }
+  // Every scene shows up in every palette, so there are 24 different covers.
+  expect(pairs.size).toBe(COVER_SCENES.length * COVER_PALETTES.length);
 });
 
 it("picks one story per day and rotates through the list", () => {

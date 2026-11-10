@@ -113,7 +113,7 @@ export interface paths {
          * @description The whole story read aloud, as WAV. Usable directly as an <audio> src.
          *
          *     Generated on the first request (this can take a while with a real model), then
-         *     served from the cache.
+         *     served from the cache. Answers Range requests (206), so players can seek.
          */
         get: operations["story_audio_api_v1_stories__story_id__audio_get"];
         put?: never;
@@ -441,6 +441,15 @@ export interface operations {
                     "audio/wav": string;
                 };
             };
+            /** @description Part of the audio: the bytes asked for in the Range header. */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "audio/wav": string;
+                };
+            };
             /** @description Not modified: the If-None-Match ETag still matches. */
             304: {
                 headers: {
@@ -459,6 +468,15 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Range Not Satisfiable */
+            416: {
                 headers: {
                     [name: string]: unknown;
                 };
