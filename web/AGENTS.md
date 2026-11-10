@@ -47,6 +47,8 @@ src/lib/
   seo.ts                    Server-side SEO helpers: siteUrl() (SITE_URL), failure-tolerant getStory/getStories, JSON-LD.
   use-api.ts                useApi(load, deps): loading/error/success state, abort on unmount, retry().
 src/test/fetch.ts           mockApi(routes): stubs global fetch with canned /api/v1 responses.
+e2e/                        Playwright browser tests (#51): fixtures.ts stubs /api/v1 in the browser and runs axe; flows.spec.ts has the flows.
+playwright.config.ts        Pixel 5 Chromium project; builds and starts the app on port 3100.
 vitest.config.mts           jsdom, globals, "@/..." path alias, setup file.
 eslint.config.mjs           next/core-web-vitals + next/typescript + prettier.
 .env.example                NEXT_PUBLIC_API_URL.
@@ -58,15 +60,16 @@ Not here yet: i18n strings, hooks folder, service worker/offline (#16), read-alo
 
 Run from `web/`.
 
-| Task                           | Command                                                                 |
-| ------------------------------ | ----------------------------------------------------------------------- |
-| Install                        | `npm ci` (or `npm install` when changing deps)                          |
-| Dev server against a local API | `npm run dev` with the API running via `make dev` from the repo root    |
-| Lint + format check            | `npm run lint` (fix formatting with `npm run format`)                   |
-| Regenerate API types           | `npm run generate:api` after `make openapi` (`npm run check:api` in CI) |
-| Typecheck                      | `npm run typecheck`                                                     |
-| Test                           | `npm test`                                                              |
-| Build                          | `npm run build`                                                         |
+| Task                           | Command                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| Install                        | `npm ci` (or `npm install` when changing deps)                                     |
+| Dev server against a local API | `npm run dev` with the API running via `make dev` from the repo root               |
+| Lint + format check            | `npm run lint` (fix formatting with `npm run format`)                              |
+| Regenerate API types           | `npm run generate:api` after `make openapi` (`npm run check:api` in CI)            |
+| Typecheck                      | `npm run typecheck`                                                                |
+| Test                           | `npm test`                                                                         |
+| Browser tests                  | `npm run e2e` (needs `npx playwright install chromium` once; builds the app first) |
+| Build                          | `npm run build`                                                                    |
 
 Before pushing, run `npm run lint && npm run typecheck && npm test && npm run build`.
 
@@ -79,6 +82,7 @@ Before pushing, run `npm run lint && npm run typecheck && npm test && npm run bu
 - **Styling.** Plain CSS in `globals.css`. Colors, spacing, radius, motion and type come from CSS variables named after the Figma variables (`--color-text-primary`, `--radius-md`, ...); use them instead of hex values, and change a token in Figma and here by the same name. `:root` is Color Light, the `prefers-color-scheme: dark` block is Color Dark. Glass surfaces use the `.glass` class (blur, with a solid fallback for no `backdrop-filter` and `prefers-reduced-transparency`). Font is Nunito via `@fontsource-variable/nunito`. Home is responsive with two media queries matching the Figma designs: from 768px (tablet) the bottom tab bar becomes a side rail and the featured card goes wide, from 1200px (desktop) the sizes grow again. Respect `prefers-reduced-motion`.
 - **Accessibility.** Status text uses `role="status"`, errors `role="alert"`, controls have labels, and story content carries `lang` set to its language code. Tests query by role and label, which keeps this honest.
 - **Tests.** Vitest + React Testing Library, file next to the code as `*.test.ts(x)`. Mock the network with `mockApi` from `src/test/fetch.ts`, never a real API. Query by role, label or text; use `userEvent` for interaction.
+- **Browser tests.** `e2e/` tests run against the built app with the API stubbed in the browser (`stubApi`), so they need no API or model. Add a flow to `flows.spec.ts`, call `expectAccessible(page)` on each new page, and query by role or label. Colour contrast is excluded from axe until the design settles (#45). Debug with `npx playwright test --ui` or `--trace on`. Not covered yet: WebKit/iPhone, read-along, offline.
 - **Formatting.** Prettier (print width 100) decides; ESLint does not argue with it.
 
 ## Where to change things

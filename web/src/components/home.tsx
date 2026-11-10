@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { fetchLanguages, fetchStories, type StorySummary } from "@/lib/api";
-import { shortLanguageName, storyOfTheDay } from "@/lib/home";
+import { htmlLang, shortLanguageName, storyOfTheDay } from "@/lib/home";
 import { useApi } from "@/lib/use-api";
 import { AppShell } from "./app-shell";
 import { CoverArt } from "./cover-art";
@@ -110,7 +110,7 @@ function Shelves({
           <span className="featured-panel glass glass-on-art">
             <span className="featured-text">
               <p className="featured-kicker">Story of the day</p>
-              <span className="featured-title" lang={featured.language}>
+              <span className="featured-title" lang={htmlLang(featured.language)}>
                 {featured.title}
               </span>
               <p className="featured-meta">{languageName(featured.language)}</p>

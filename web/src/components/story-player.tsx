@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ApiError, fetchStories, fetchStory, storyAudioUrl } from "@/lib/api";
 import { useFavorites } from "@/lib/favorites";
+import { htmlLang } from "@/lib/home";
 import { useApi } from "@/lib/use-api";
 import { useLanguages } from "@/lib/use-languages";
 import { AppShell } from "./app-shell";
@@ -86,7 +87,7 @@ export function StoryPlayer({ id }: { id: string }) {
 
   return (
     <AppShell current="Library">
-      <article className="player" lang={language}>
+      <article className="player" lang={htmlLang(language)}>
         <div className="player-top">{back}</div>
         <div className="player-cover">
           <CoverArt id={id}>
@@ -150,7 +151,7 @@ export function StoryPlayer({ id }: { id: string }) {
         {next && (
           <Link href={storyHref(next)} className="next-story glass">
             <span className="next-kicker">Next story</span>
-            <span lang={next.language}>{next.title}</span>
+            <span lang={htmlLang(next.language)}>{next.title}</span>
           </Link>
         )}
       </article>
