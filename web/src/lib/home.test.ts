@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { COVER_PALETTES, coverPalette, shortLanguageName, storyOfTheDay } from "./home";
+import { COVER_PALETTES, coverPalette, htmlLang, shortLanguageName, storyOfTheDay } from "./home";
 
 const story = (id: string) => ({ id, title: id, language: "aka" });
 
@@ -22,4 +22,10 @@ it("picks one story per day and rotates through the list", () => {
 it("shortens language names for the small tiles", () => {
   expect(shortLanguageName("Twi (Akan)")).toBe("Twi");
   expect(shortLanguageName("Ewe")).toBe("Ewe");
+});
+
+it("maps API language codes to BCP 47 tags for the lang attribute", () => {
+  expect(htmlLang("aka")).toBe("ak");
+  expect(htmlLang("ewe")).toBe("ee");
+  expect(htmlLang("gaa")).toBe("gaa"); // no two-letter code
 });

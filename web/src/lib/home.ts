@@ -27,3 +27,10 @@ export function storyOfTheDay(
 export function shortLanguageName(name: string): string {
   return name.replace(/\s*\(.*\)\s*$/, "");
 }
+
+const HTML_LANG: Record<string, string> = { aka: "ak", ewe: "ee" };
+
+/** The BCP 47 tag for an API language code (ISO 639-3), for the HTML `lang` attribute. */
+export function htmlLang(code: string): string {
+  return HTML_LANG[code] ?? code;
+}
