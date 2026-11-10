@@ -205,7 +205,7 @@
           "v1"
         ],
         "summary": "Story Audio",
-        "description": "The whole story read aloud, as WAV. Usable directly as an <audio> src.\n\nGenerated on the first request (this can take a while with a real model), then\nserved from the cache.",
+        "description": "The whole story read aloud, as WAV. Usable directly as an <audio> src.\n\nGenerated on the first request (this can take a while with a real model), then\nserved from the cache. Answers Range requests (206), so players can seek.",
         "operationId": "story_audio_api_v1_stories__story_id__audio_get",
         "parameters": [
           {
@@ -232,6 +232,27 @@
           },
           "304": {
             "description": "Not modified: the If-None-Match ETag still matches."
+          },
+          "206": {
+            "content": {
+              "audio/wav": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "description": "Part of the audio: the bytes asked for in the Range header."
+          },
+          "416": {
+            "description": "The Range header starts past the end of the audio.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "400": {
             "content": {

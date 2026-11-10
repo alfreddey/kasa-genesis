@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,20 @@ WAV_RESPONSE: dict[int | str, dict[str, Any]] = {
     },
     304: {"description": "Not modified: the If-None-Match ETag still matches."},
 }
+# Story audio also answers Range requests. Browsers need that to seek inside an <audio>.
+RANGE_RESPONSE: dict[int | str, dict[str, Any]] = {
+    206: {
+        "content": {"audio/wav": {"schema": {"type": "string", "format": "binary"}}},
+        "description": "Part of the audio: the bytes asked for in the Range header.",
+    },
+    # Described here because the standard phrase for 416 differs between Python versions,
+    # which would make the generated openapi.json depend on who generated it.
+    416: {
+        "model": schemas.ErrorResponse,
+        "description": "The Range header starts past the end of the audio.",
+    },
+}
+_RANGE = re.compile(r"bytes=(\d*)-(\d*)")
 
 
 def error(*codes: int) -> dict[int | str, dict[str, Any]]:
@@ -70,11 +85,52 @@ def abena_options(settings: Settings) -> dict[str, Any]:
     }
 
 
+def _byte_range(header: str, size: int) -> tuple[int, int] | None:
+    """The first and last byte a Range header asks for, or None to send everything.
+
+    Understands one range: "bytes=0-99", "bytes=100-" or "bytes=-50" (the last 50). Anything
+    else is ignored, as HTTP allows. A range that starts past the end is a 416.
+    """
+    match = _RANGE.fullmatch(header.strip())
+    if not match or not (match[1] or match[2]):
+        return None
+    if not match[1]:  # "bytes=-N": the last N bytes
+        first, last = max(size - int(match[2]), 0), size - 1
+    else:
+        first = int(match[1])
+        last = min(int(match[2]), size - 1) if match[2] else size - 1
+        if match[2] and int(match[2]) < first:
+            return None
+    if first >= size or last < first:
+        raise HTTPException(
+            416,
+            "That part of the audio does not exist.",
+            headers={"Content-Range": f"bytes */{size}"},
+        )
+    return first, last
+
+
 def _wav(request: Request, audio: bytes, key: str) -> Response:
     etag = f'"{key}"'
     headers = {"ETag": etag, "Cache-Control": "public, max-age=3600"}
     if etag in request.headers.get("if-none-match", ""):
         return Response(status_code=304, headers=headers)
+    if request.method == "GET":
+        # A browser can only seek in an <audio> (skip back, drag the progress bar) when the
+        # server answers Range requests. If-Range guards against mixing two versions.
+        headers["Accept-Ranges"] = "bytes"
+        asked = request.headers.get("range")
+        if asked and request.headers.get("if-range", etag) == etag:
+            span = _byte_range(asked, len(audio))
+            if span is not None:
+                first, last = span
+                headers["Content-Range"] = f"bytes {first}-{last}/{len(audio)}"
+                return Response(
+                    audio[first : last + 1],
+                    status_code=206,
+                    media_type="audio/wav",
+                    headers=headers,
+                )
     return Response(audio, media_type="audio/wav", headers=headers)
 
 
@@ -247,13 +303,13 @@ def create_app(
     @v1.get(
         "/stories/{story_id}/audio",
         response_class=Response,
-        responses={**WAV_RESPONSE, **error(400, 404, 429, 502, 503)},
+        responses={**WAV_RESPONSE, **RANGE_RESPONSE, **error(400, 404, 429, 502, 503)},
     )
     def story_audio(story_id: str, request: Request) -> Response:
         """The whole story read aloud, as WAV. Usable directly as an <audio> src.
 
         Generated on the first request (this can take a while with a real model), then
-        served from the cache.
+        served from the cache. Answers Range requests (206), so players can seek.
         """
         s = get_story(story_id)
         return speak(request, s["text"], s["language"])

@@ -129,6 +129,54 @@ def test_story_audio_supports_etag(app_client):
     assert r.content == b""
 
 
+def test_story_audio_serves_byte_ranges_so_players_can_seek(app_client):
+    url = "/api/v1/stories/b-ewe/audio"
+    whole = app_client.get(url)
+    assert whole.headers["accept-ranges"] == "bytes"
+    size = len(whole.content)
+
+    part = app_client.get(url, headers={"Range": "bytes=10-19"})
+    assert part.status_code == 206
+    assert part.content == whole.content[10:20]
+    assert part.headers["content-range"] == f"bytes 10-19/{size}"
+    assert part.headers["content-type"] == "audio/wav"
+
+    assert app_client.get(url, headers={"Range": "bytes=20-"}).content == whole.content[20:]
+    assert app_client.get(url, headers={"Range": "bytes=-4"}).content == whole.content[-4:]
+    # A range that runs past the end is cut at the end.
+    long = app_client.get(url, headers={"Range": f"bytes=0-{size + 100}"})
+    assert long.status_code == 206
+    assert long.content == whole.content
+
+
+def test_story_audio_range_edge_cases(app_client):
+    url = "/api/v1/stories/b-ewe/audio"
+    whole = app_client.get(url)
+    size = len(whole.content)
+
+    past_the_end = app_client.get(url, headers={"Range": f"bytes={size}-"})
+    assert past_the_end.status_code == 416
+    assert past_the_end.headers["content-range"] == f"bytes */{size}"
+
+    # Ranges the API does not understand are ignored: the whole file comes back.
+    for header in ("bytes=5-2", "items=0-5", "bytes=0-1,4-5", "bytes=-"):
+        r = app_client.get(url, headers={"Range": header})
+        assert (r.status_code, r.content) == (200, whole.content), header
+
+    # If-Range with an old ETag means "I have a different version": send everything.
+    stale = app_client.get(url, headers={"Range": "bytes=0-9", "If-Range": '"old"'})
+    assert stale.status_code == 200
+    fresh = app_client.get(url, headers={"Range": "bytes=0-9", "If-Range": whole.headers["etag"]})
+    assert fresh.status_code == 206
+
+
+def test_tts_ignores_range(client):
+    body = {"text": "Akwaaba.", "language": "aka"}
+    r = client.post("/api/v1/tts", json=body, headers={"Range": "bytes=0-9"})
+    assert r.status_code == 200
+    assert "accept-ranges" not in r.headers
+
+
 def test_tts_returns_wav(client, synth):
     r = client.post("/api/v1/tts", json={"text": "Akwaaba. Wo ho te sɛn?", "language": "aka"})
     assert r.status_code == 200

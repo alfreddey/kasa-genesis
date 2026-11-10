@@ -1,7 +1,7 @@
 import type { Language } from "@/lib/api";
 import { shortLanguageName } from "@/lib/home";
 
-/** Glass segmented control: All plus one segment per language. */
+/** Language picker: All plus one chunky button per language. The chosen one is pressed in. */
 export function LanguageFilter({
   languages,
   value,
@@ -13,7 +13,7 @@ export function LanguageFilter({
 }) {
   if (languages.length === 0) return null;
   return (
-    <div className="segmented glass" role="group" aria-label="Language">
+    <div className="segmented" role="group" aria-label="Language">
       <button
         type="button"
         className="segment"

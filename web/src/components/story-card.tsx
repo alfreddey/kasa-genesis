@@ -6,20 +6,22 @@ import { PlayIcon } from "./icons";
 
 export const storyHref = (s: Pick<StorySummary, "id">) => `/stories/${encodeURIComponent(s.id)}`;
 
-/** A cover with title and language that opens the story player. */
+/** A story as a thick paper tile: cover on top, title and language below. Opens the player. */
 export function StoryCard({ story, language }: { story: StorySummary; language: string }) {
   return (
     <Link href={storyHref(story)} className="story-card">
-      <CoverArt id={story.id}>
-        <span className="cover-tag glass glass-on-art">{language}</span>
-        <span className="play-glass glass glass-on-art">
+      <span className="story-card-art">
+        <CoverArt id={story.id} />
+        <span className="play-badge" aria-hidden="true">
           <PlayIcon />
         </span>
-      </CoverArt>
-      <span className="story-card-title" lang={htmlLang(story.language)}>
-        {story.title}
       </span>
-      <span className="story-card-language">{language}</span>
+      <span className="story-card-body">
+        <span className="story-card-title" lang={htmlLang(story.language)}>
+          {story.title}
+        </span>
+        <span className="chip">{language}</span>
+      </span>
     </Link>
   );
 }

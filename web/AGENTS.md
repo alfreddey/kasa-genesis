@@ -6,7 +6,7 @@ Guide for coding agents working in `web/`, the Next.js frontend. `CLAUDE.md` her
 
 ## What this is
 
-A Next.js 15 app (App Router, React 19, TypeScript strict) that talks to the FastAPI service in `api/` over its `/api/v1` HTTP contract (issue #4). It has Home, Library, Saved, Parents and a story player, all inside one shared shell (backdrop + glass tab bar) so every page links to the others. Styling follows the Figma design system "Kasa Genesis Design System" (#80, #41-#47): tokens live in `globals.css`.
+A Next.js 15 app (App Router, React 19, TypeScript strict) that talks to the FastAPI service in `api/` over its `/api/v1` HTTP contract (issue #4). It has Home, Library, Saved, Parents and a story player, all inside one shared shell (scene + glass tab bar) so every page links to the others. The look is "Sunny storybook", described in `docs/design-direction.md`: content on solid paper, buttons with an edge that press in, glass only on the navigation, and Ananse the spider as the mascot. Tokens live in `globals.css` and are named after the Figma design system "Kasa Genesis Design System" (#80, #41-#47).
 
 ## Code map
 
@@ -21,29 +21,32 @@ src/app/                    Routes (App Router). Pages stay thin and render a co
   not-found.tsx             404 page.
   robots.ts, sitemap.ts     robots.txt and sitemap.xml (sitemap built from the live API).
   error.tsx, global-error.tsx  Error boundaries (page crash / root layout crash), "Try again".
-  globals.css               Design tokens (from Figma, light + dark), liquid glass styles, Home and plain-page styles.
+  globals.css               Design tokens (Figma names, light + dark) and every style: paper, buttons, scene, mascot, covers, pages.
 src/components/             UI. One component per file, kebab-case names, test next to it.
   home.tsx                  Home: greeting, language tiles, story of the day, shelf. Fetches languages + stories.
-  cover-art.tsx             Placeholder cover (sun and hills) colored from the story id.
-  app-shell.tsx             Shared page frame: savanna backdrop, content column, <TabBar>. Every app page renders inside it.
+  cover-art.tsx             Generated cover: one of six place scenes in one of four palettes, both picked from the story id.
+  app-shell.tsx             Shared page frame: <Scene>, content column, <TabBar>. Every app page renders inside it.
+  scene.tsx                 The backdrop: sky, sun, clouds, hills, acacia (moon, stars and fireflies in dark mode). Decorative.
+  mascot.tsx                Ananse the spider: <Mascot mood="happy|oops" hanging />. Decorative, always next to real text.
   tab-bar.tsx               Glass navigation (bottom bar, side rail from tablet width): Home, Library, Saved, Parents; only the current tab's icon is highlighted.
   library.tsx               Library: search, language filter, big cover grid.
   saved.tsx                 Saved stories (from favorites in localStorage).
   parents.tsx               Parents placeholder.
-  story-card.tsx            Cover card linking to a story; storyHref(). story-grid.tsx lays cards out (2/3/5 columns).
-  language-filter.tsx       Glass segmented language control.
+  story-card.tsx            Paper tile linking to a story; storyHref(). story-grid.tsx lays cards out (2/3/4/5 columns).
+  language-filter.tsx       Language picker: paper buttons, the chosen one stays pressed in (aria-pressed).
   icons.tsx                 Inline SVG icons (currentColor).
-  plain-page.tsx            Site header + narrow column for the error and 404 pages.
-  story-player.tsx          Player page: cover, <audio>, heart (save), "Show the words" switch (listening is the default), next story link.
+  plain-page.tsx            Scene + site header + narrow paper card for the error and 404 pages.
+  story-player.tsx          Player page: cover, a hidden <audio> driven by our own controls (play/pause, 10 s skips, a progress bar to drag), heart (save), "Show the words" switch (listening is the default), next story link.
   offline-banner.tsx        Shown in the layout when the browser goes offline.
   error-view.tsx            Friendly crash fallback used by error.tsx.
-  status.tsx                <Loading> and <ErrorState> (with retry). Use these for every async state.
+  status.tsx                <Loading> and <ErrorState> (with retry), both with the mascot. Use these for every async state.
 src/lib/
   api.ts                    Typed API client: apiFetch, fetchStories/fetchStory/fetchLanguages, storyAudioUrl, ApiError.
   api-types.gen.ts          GENERATED from api/openapi.json by `npm run generate:api`. Never edit by hand.
   favorites.ts              useFavorites(): saved story ids in localStorage.
   use-languages.ts          useLanguages(): languages plus name(code).
-  home.ts                   Home helpers: coverPalette(id), storyOfTheDay(), shortLanguageName().
+  home.ts                   Home and cover helpers: coverPalette(id), coverScene(id), storyOfTheDay(), shortLanguageName(), htmlLang(code).
+  time.ts                   formatTime(seconds) -> "1:23" and spokenTime(seconds) -> "1 minute 23 seconds" for the player.
   seo.ts                    Server-side SEO helpers: siteUrl() (SITE_URL), failure-tolerant getStory/getStories, JSON-LD.
   use-api.ts                useApi(load, deps): loading/error/success state, abort on unmount, retry().
 src/test/fetch.ts           mockApi(routes): stubs global fetch with canned /api/v1 responses.
@@ -78,11 +81,11 @@ Before pushing, run `npm run lint && npm run typecheck && npm test && npm run bu
 - **Server vs client components.** Pages in `src/app` are server components that only read route params and render a component. Components that fetch or hold state start with `"use client"`. Data is fetched in the browser today, because `NEXT_PUBLIC_API_URL` is the browser-facing URL; move fetching to the server only together with a server-side API URL.
 - **Calling the API.** Only through `src/lib/api.ts`. Add one small function per endpoint that calls `apiFetch`, and use it from a component through `useApi`. Never call `fetch` directly from a component. `apiFetch` adds the base URL, a 10 s timeout and turns failures into `ApiError` (`status` 0 means the API was unreachable or too slow).
 - **Async states.** Every fetch shows `<Loading>` while waiting and `<ErrorState onRetry=...>` on failure. A 404 shows a friendly message without retry.
-- **Audio.** Use the URL from `storyAudioUrl(id)` as the `<audio>` `src`; the browser streams it. The first request for a story can be slow because the API synthesizes it, so show a status while the element is waiting.
-- **Styling.** Plain CSS in `globals.css`. Colors, spacing, radius, motion and type come from CSS variables named after the Figma variables (`--color-text-primary`, `--radius-md`, ...); use them instead of hex values, and change a token in Figma and here by the same name. `:root` is Color Light, the `prefers-color-scheme: dark` block is Color Dark. Glass surfaces use the `.glass` class (blur, with a solid fallback for no `backdrop-filter` and `prefers-reduced-transparency`). Font is Nunito via `@fontsource-variable/nunito`. Home is responsive with two media queries matching the Figma designs: from 768px (tablet) the bottom tab bar becomes a side rail and the featured card goes wide, from 1200px (desktop) the sizes grow again. Respect `prefers-reduced-motion`.
-- **Accessibility.** Status text uses `role="status"`, errors `role="alert"`, controls have labels, and story content carries `lang` set to its language code. Tests query by role and label, which keeps this honest.
-- **Tests.** Vitest + React Testing Library, file next to the code as `*.test.ts(x)`. Mock the network with `mockApi` from `src/test/fetch.ts`, never a real API. Query by role, label or text; use `userEvent` for interaction.
-- **Browser tests.** `e2e/` tests run against the built app with the API stubbed in the browser (`stubApi`), so they need no API or model. Add a flow to `flows.spec.ts`, call `expectAccessible(page)` on each new page, and query by role or label. Colour contrast is excluded from axe until the design settles (#45). Debug with `npx playwright test --ui` or `--trace on`. Not covered yet: WebKit/iPhone, read-along, offline.
+- **Audio.** Use the URL from `storyAudioUrl(id)` as the `<audio>` `src`; the browser streams it. The first request for a story can be slow because the API synthesizes it, so show a status while the element is waiting. The player hides the browser's own controls and drives the element itself, so every button follows the element's events (`play`, `waiting`, `playing`, `pause`, `ended`, `error`, `timeupdate`), never a guess. Seeking needs the server to answer `Range` requests (the API does for story audio). The skip buttons and the progress bar stay disabled until `audio.seekable` says seeking is possible, because a failed seek jumps back to the start of the story.
+- **Styling.** Plain CSS in `globals.css`, following the three rules in `docs/design-direction.md`. Paper holds: everything you read or press sits on a solid surface (`.paper`), never on glass or straight on a picture. Edges press: anything tappable has a solid bottom edge (`--edge-size`) and sinks when pressed (`.btn`, `.segment`, `.play-main`); if it has no edge it is not a button. Glass floats: `.glass` (blur, with a solid fallback for no `backdrop-filter` and `prefers-reduced-transparency`) is only for the navigation. Colors, spacing, radius, motion and type come from CSS variables named after the Figma variables (`--color-text-primary`, `--radius-md`, ...); use them instead of hex values, and change a token in Figma and here by the same name. Tokens marked "storybook" in `globals.css` exist only in code so far. `:root` is Color Light, the `prefers-color-scheme: dark` block is Color Dark (a moonlit scene). Font is Nunito via `@fontsource-variable/nunito`. Layouts are phone first: from 768px the bottom tab bar becomes a side rail and the featured card goes wide, from 1100px the player splits into cover and controls, and a small block below 360px keeps the player controls inside their panel. Touch targets are at least 48px. Respect `prefers-reduced-motion`: one block at the end of the file switches every animation off.
+- **Accessibility.** Status text uses `role="status"`, errors `role="alert"`, controls have labels, and story titles and story text carry `lang` set through `htmlLang()` (the BCP 47 tag for the story's language code). The scene, the mascot and the covers are decorative (`aria-hidden`), so they never carry meaning on their own. White text on the orange button only passes contrast as large bold text; keep it at `--text-label-lg`. Tests query by role and label, which keeps this honest.
+- **Tests.** Vitest + React Testing Library, file next to the code as `*.test.ts(x)`. Mock the network with `mockApi` from `src/test/fetch.ts`, never a real API. Query by role, label or text; use `userEvent` for interaction. jsdom cannot play media, so the player tests stub `play` and `pause` on `HTMLMediaElement.prototype` and fire the media events by hand.
+- **Browser tests.** `e2e/` tests run against the built app with the API stubbed in the browser (`stubApi`), so they need no API or model. Add a flow to `flows.spec.ts`, call `expectAccessible(page)` on each new page, and query by role or label. Colour contrast is excluded from axe for now (#45). Debug with `npx playwright test --ui` or `--trace on`. Not covered yet: WebKit/iPhone, read-along, offline.
 - **Formatting.** Prettier (print width 100) decides; ESLint does not argue with it.
 
 ## Where to change things
@@ -94,7 +97,9 @@ Before pushing, run `npm run lint && npm run typecheck && npm test && npm run bu
 | Change the library                                       | `src/components/library.tsx` and its test                                                                     |
 | Change the player (and later the read-along reader, #15) | `src/components/story-player.tsx` and its test                                                                |
 | Change loading or error messages                         | `src/components/status.tsx`                                                                                   |
-| Change colours or layout                                 | `src/app/globals.css`                                                                                         |
+| Change colours or layout                                 | `src/app/globals.css` (read `docs/design-direction.md` first)                                                 |
+| Change the mascot or the backdrop                        | `src/components/mascot.tsx`, `src/components/scene.tsx` and their styles in `src/app/globals.css`             |
+| Add or change a cover scene                              | `src/components/cover-art.tsx` and the scene list in `src/lib/home.ts`                                        |
 | Change the Home page                                     | `src/components/home.tsx` and its test                                                                        |
 | Change which API the app talks to                        | `NEXT_PUBLIC_API_URL` in `.env.local`, then restart or rebuild                                                |
 

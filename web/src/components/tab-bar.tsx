@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { HeartIcon, HomeIcon, LibraryIcon, PersonIcon } from "./icons";
+import { Mascot } from "./mascot";
 
 export type TabName = "Home" | "Library" | "Saved" | "Parents";
 
-type Tab = { label: TabName; icon: ReactNode; href?: string };
+type Tab = { label: TabName; icon: ReactNode; href: string };
 
 const TABS: Tab[] = [
   { label: "Home", icon: <HomeIcon />, href: "/" },
@@ -13,44 +14,28 @@ const TABS: Tab[] = [
   { label: "Parents", icon: <PersonIcon />, href: "/parents" },
 ];
 
-/** Bottom navigation in glass, a side rail from tablet width up. Only the icon of the current tab is highlighted. */
+/**
+ * Main navigation: a floating glass bar at the bottom of a phone, a side rail from tablet width
+ * up. It is the one place glass is used, because it floats over the page. The current tab gets a
+ * solid orange icon tile and a bold label.
+ */
 export function TabBar({ current }: { current: TabName }) {
   return (
     <nav className="tab-bar glass" aria-label="Main">
       <span className="tab-logo" aria-hidden="true">
-        K
+        <Mascot />
       </span>
-      {TABS.map((tab) => {
-        const inner = (
-          <>
-            <span className="tab-icon">{tab.icon}</span>
-            {tab.label}
-          </>
-        );
-        if (!tab.href) {
-          return (
-            <button
-              key={tab.label}
-              type="button"
-              className="tab"
-              aria-disabled="true"
-              title="Coming soon"
-            >
-              {inner}
-            </button>
-          );
-        }
-        return (
-          <Link
-            key={tab.label}
-            href={tab.href}
-            className="tab"
-            aria-current={tab.label === current ? "page" : undefined}
-          >
-            {inner}
-          </Link>
-        );
-      })}
+      {TABS.map((tab) => (
+        <Link
+          key={tab.label}
+          href={tab.href}
+          className="tab"
+          aria-current={tab.label === current ? "page" : undefined}
+        >
+          <span className="tab-icon">{tab.icon}</span>
+          {tab.label}
+        </Link>
+      ))}
     </nav>
   );
 }
