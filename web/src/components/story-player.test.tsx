@@ -61,7 +61,7 @@ it("loads the story and points the player at its audio", async () => {
 
 it("marks the title and the words with the story's language, not the whole page", async () => {
   await renderPlayer();
-  expect(screen.getByRole("heading", { name: "Twi greetings" })).toHaveAttribute("lang", "aka");
+  expect(screen.getByRole("heading", { name: "Twi greetings" })).toHaveAttribute("lang", "ak");
   expect(screen.getByRole("article")).not.toHaveAttribute("lang");
 });
 
@@ -72,7 +72,7 @@ it("listens by default and shows the words when the switch is turned on", async 
   await userEvent.click(screen.getByRole("switch", { name: "Show the words" }));
   expect(screen.getByText("Akwaaba. Wo ho te sɛn?").closest("[lang]")).toHaveAttribute(
     "lang",
-    "aka",
+    "ak",
   );
 });
 

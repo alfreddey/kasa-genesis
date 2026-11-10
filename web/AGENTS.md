@@ -45,11 +45,13 @@ src/lib/
   api-types.gen.ts          GENERATED from api/openapi.json by `npm run generate:api`. Never edit by hand.
   favorites.ts              useFavorites(): saved story ids in localStorage.
   use-languages.ts          useLanguages(): languages plus name(code).
-  home.ts                   Home and cover helpers: coverPalette(id), coverScene(id), storyOfTheDay(), shortLanguageName().
+  home.ts                   Home and cover helpers: coverPalette(id), coverScene(id), storyOfTheDay(), shortLanguageName(), htmlLang(code).
   time.ts                   formatTime(seconds) -> "1:23" and spokenTime(seconds) -> "1 minute 23 seconds" for the player.
   seo.ts                    Server-side SEO helpers: siteUrl() (SITE_URL), failure-tolerant getStory/getStories, JSON-LD.
   use-api.ts                useApi(load, deps): loading/error/success state, abort on unmount, retry().
 src/test/fetch.ts           mockApi(routes): stubs global fetch with canned /api/v1 responses.
+e2e/                        Playwright browser tests (#51): fixtures.ts stubs /api/v1 in the browser and runs axe; flows.spec.ts has the flows.
+playwright.config.ts        Pixel 5 Chromium project; builds and starts the app on port 3100.
 vitest.config.mts           jsdom, globals, "@/..." path alias, setup file.
 eslint.config.mjs           next/core-web-vitals + next/typescript + prettier.
 .env.example                NEXT_PUBLIC_API_URL.
@@ -61,15 +63,16 @@ Not here yet: i18n strings, hooks folder, service worker/offline (#16), read-alo
 
 Run from `web/`.
 
-| Task                           | Command                                                                 |
-| ------------------------------ | ----------------------------------------------------------------------- |
-| Install                        | `npm ci` (or `npm install` when changing deps)                          |
-| Dev server against a local API | `npm run dev` with the API running via `make dev` from the repo root    |
-| Lint + format check            | `npm run lint` (fix formatting with `npm run format`)                   |
-| Regenerate API types           | `npm run generate:api` after `make openapi` (`npm run check:api` in CI) |
-| Typecheck                      | `npm run typecheck`                                                     |
-| Test                           | `npm test`                                                              |
-| Build                          | `npm run build`                                                         |
+| Task                           | Command                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| Install                        | `npm ci` (or `npm install` when changing deps)                                     |
+| Dev server against a local API | `npm run dev` with the API running via `make dev` from the repo root               |
+| Lint + format check            | `npm run lint` (fix formatting with `npm run format`)                              |
+| Regenerate API types           | `npm run generate:api` after `make openapi` (`npm run check:api` in CI)            |
+| Typecheck                      | `npm run typecheck`                                                                |
+| Test                           | `npm test`                                                                         |
+| Browser tests                  | `npm run e2e` (needs `npx playwright install chromium` once; builds the app first) |
+| Build                          | `npm run build`                                                                    |
 
 Before pushing, run `npm run lint && npm run typecheck && npm test && npm run build`.
 
@@ -80,8 +83,9 @@ Before pushing, run `npm run lint && npm run typecheck && npm test && npm run bu
 - **Async states.** Every fetch shows `<Loading>` while waiting and `<ErrorState onRetry=...>` on failure. A 404 shows a friendly message without retry.
 - **Audio.** Use the URL from `storyAudioUrl(id)` as the `<audio>` `src`; the browser streams it. The first request for a story can be slow because the API synthesizes it, so show a status while the element is waiting. The player hides the browser's own controls and drives the element itself, so every button follows the element's events (`play`, `waiting`, `playing`, `pause`, `ended`, `error`, `timeupdate`), never a guess. Seeking needs the server to answer `Range` requests (the API does for story audio). The skip buttons and the progress bar stay disabled until `audio.seekable` says seeking is possible, because a failed seek jumps back to the start of the story.
 - **Styling.** Plain CSS in `globals.css`, following the three rules in `docs/design-direction.md`. Paper holds: everything you read or press sits on a solid surface (`.paper`), never on glass or straight on a picture. Edges press: anything tappable has a solid bottom edge (`--edge-size`) and sinks when pressed (`.btn`, `.segment`, `.play-main`); if it has no edge it is not a button. Glass floats: `.glass` (blur, with a solid fallback for no `backdrop-filter` and `prefers-reduced-transparency`) is only for the navigation. Colors, spacing, radius, motion and type come from CSS variables named after the Figma variables (`--color-text-primary`, `--radius-md`, ...); use them instead of hex values, and change a token in Figma and here by the same name. Tokens marked "storybook" in `globals.css` exist only in code so far. `:root` is Color Light, the `prefers-color-scheme: dark` block is Color Dark (a moonlit scene). Font is Nunito via `@fontsource-variable/nunito`. Layouts are phone first: from 768px the bottom tab bar becomes a side rail and the featured card goes wide, from 1100px the player splits into cover and controls, and a small block below 360px keeps the player controls inside their panel. Touch targets are at least 48px. Respect `prefers-reduced-motion`: one block at the end of the file switches every animation off.
-- **Accessibility.** Status text uses `role="status"`, errors `role="alert"`, controls have labels, and story titles and story text carry `lang` set to the story's language code. The scene, the mascot and the covers are decorative (`aria-hidden`), so they never carry meaning on their own. White text on the orange button only passes contrast as large bold text; keep it at `--text-label-lg`. Tests query by role and label, which keeps this honest.
+- **Accessibility.** Status text uses `role="status"`, errors `role="alert"`, controls have labels, and story titles and story text carry `lang` set through `htmlLang()` (the BCP 47 tag for the story's language code). The scene, the mascot and the covers are decorative (`aria-hidden`), so they never carry meaning on their own. White text on the orange button only passes contrast as large bold text; keep it at `--text-label-lg`. Tests query by role and label, which keeps this honest.
 - **Tests.** Vitest + React Testing Library, file next to the code as `*.test.ts(x)`. Mock the network with `mockApi` from `src/test/fetch.ts`, never a real API. Query by role, label or text; use `userEvent` for interaction. jsdom cannot play media, so the player tests stub `play` and `pause` on `HTMLMediaElement.prototype` and fire the media events by hand.
+- **Browser tests.** `e2e/` tests run against the built app with the API stubbed in the browser (`stubApi`), so they need no API or model. Add a flow to `flows.spec.ts`, call `expectAccessible(page)` on each new page, and query by role or label. Colour contrast is excluded from axe for now (#45). Debug with `npx playwright test --ui` or `--trace on`. Not covered yet: WebKit/iPhone, read-along, offline.
 - **Formatting.** Prettier (print width 100) decides; ESLint does not argue with it.
 
 ## Where to change things

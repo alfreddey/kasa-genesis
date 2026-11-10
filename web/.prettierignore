@@ -3,3 +3,5 @@ node_modules/
 package-lock.json
 next-env.d.ts
 src/lib/api-types.gen.ts
+test-results/
+playwright-report/

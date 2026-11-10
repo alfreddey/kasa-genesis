@@ -4,6 +4,7 @@ import Link from "next/link";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { ApiError, fetchStories, fetchStory, storyAudioUrl } from "@/lib/api";
 import { useFavorites } from "@/lib/favorites";
+import { htmlLang } from "@/lib/home";
 import { formatTime, spokenTime } from "@/lib/time";
 import { useApi } from "@/lib/use-api";
 import { useLanguages } from "@/lib/use-languages";
@@ -161,7 +162,7 @@ export function StoryPlayer({ id }: { id: string }) {
 
         <div className="player-panel paper">
           <div className="player-heading">
-            <h1 lang={language}>{title}</h1>
+            <h1 lang={htmlLang(language)}>{title}</h1>
             <button
               type="button"
               className="heart-button"
@@ -273,7 +274,7 @@ export function StoryPlayer({ id }: { id: string }) {
             <span className="switch-label">Show the words</span>
           </label>
           {readAlong && (
-            <div className="story-text" lang={language}>
+            <div className="story-text" lang={htmlLang(language)}>
               {text.split(/\n\s*\n/).map((paragraph, i) => (
                 <p key={i}>{paragraph}</p>
               ))}
@@ -288,7 +289,7 @@ export function StoryPlayer({ id }: { id: string }) {
             </span>
             <span className="next-text">
               <span className="kicker">Next story</span>
-              <span className="next-title" lang={next.language}>
+              <span className="next-title" lang={htmlLang(next.language)}>
                 {next.title}
               </span>
             </span>

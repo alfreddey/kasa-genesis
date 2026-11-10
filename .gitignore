@@ -32,3 +32,7 @@ next-env.d.ts
 # Experiment outputs (audio, checkpoints). Commit the write-up and code only.
 experiments/output/
 experiments/*/output/
+
+# Playwright (web/)
+test-results/
+playwright-report/

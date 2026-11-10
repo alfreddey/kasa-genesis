@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { StorySummary } from "@/lib/api";
+import { htmlLang } from "@/lib/home";
 import { CoverArt } from "./cover-art";
 import { PlayIcon } from "./icons";
 
@@ -16,7 +17,7 @@ export function StoryCard({ story, language }: { story: StorySummary; language: 
         </span>
       </span>
       <span className="story-card-body">
-        <span className="story-card-title" lang={story.language}>
+        <span className="story-card-title" lang={htmlLang(story.language)}>
           {story.title}
         </span>
         <span className="chip">{language}</span>
