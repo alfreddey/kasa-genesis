@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     # Override the Hugging Face model id per language, as JSON: {"aka": "org/model"}.
     tts_models: dict[str, str] = Field(default_factory=dict)
 
+    # Interactive API docs at /docs and /redoc. Turn off in production; /openapi.json stays.
+    enable_docs: bool = True
     # Free-text synthesis (POST /api/v1/tts). Turn off in production so the public only
     # hears stored story audio.
     allow_free_text_tts: bool = True

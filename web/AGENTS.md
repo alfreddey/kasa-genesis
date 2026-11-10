@@ -39,7 +39,8 @@ src/components/             UI. One component per file, kebab-case names, test n
   error-view.tsx            Friendly crash fallback used by error.tsx.
   status.tsx                <Loading> and <ErrorState> (with retry). Use these for every async state.
 src/lib/
-  api.ts                    Typed API client: types, apiFetch, fetchStories/fetchStory/fetchLanguages, storyAudioUrl, ApiError.
+  api.ts                    Typed API client: apiFetch, fetchStories/fetchStory/fetchLanguages, storyAudioUrl, ApiError.
+  api-types.gen.ts          GENERATED from api/openapi.json by `npm run generate:api`. Never edit by hand.
   favorites.ts              useFavorites(): saved story ids in localStorage.
   use-languages.ts          useLanguages(): languages plus name(code).
   home.ts                   Home helpers: coverPalette(id), storyOfTheDay(), shortLanguageName().
@@ -51,20 +52,21 @@ eslint.config.mjs           next/core-web-vitals + next/typescript + prettier.
 .env.example                NEXT_PUBLIC_API_URL.
 ```
 
-Not here yet: i18n strings, hooks folder, service worker/offline (#16), read-along reader (#15), generated API types (#27).
+Not here yet: i18n strings, hooks folder, service worker/offline (#16), read-along reader (#15).
 
 ## Commands
 
 Run from `web/`.
 
-| Task                           | Command                                                              |
-| ------------------------------ | -------------------------------------------------------------------- |
-| Install                        | `npm ci` (or `npm install` when changing deps)                       |
-| Dev server against a local API | `npm run dev` with the API running via `make dev` from the repo root |
-| Lint + format check            | `npm run lint` (fix formatting with `npm run format`)                |
-| Typecheck                      | `npm run typecheck`                                                  |
-| Test                           | `npm test`                                                           |
-| Build                          | `npm run build`                                                      |
+| Task                           | Command                                                                 |
+| ------------------------------ | ----------------------------------------------------------------------- |
+| Install                        | `npm ci` (or `npm install` when changing deps)                          |
+| Dev server against a local API | `npm run dev` with the API running via `make dev` from the repo root    |
+| Lint + format check            | `npm run lint` (fix formatting with `npm run format`)                   |
+| Regenerate API types           | `npm run generate:api` after `make openapi` (`npm run check:api` in CI) |
+| Typecheck                      | `npm run typecheck`                                                     |
+| Test                           | `npm test`                                                              |
+| Build                          | `npm run build`                                                         |
 
 Before pushing, run `npm run lint && npm run typecheck && npm test && npm run build`.
 
@@ -81,16 +83,16 @@ Before pushing, run `npm run lint && npm run typecheck && npm test && npm run bu
 
 ## Where to change things
 
-| You want to...                                           | Edit                                                                                     |
-| -------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Add a page                                               | New folder in `src/app/` with `page.tsx` that renders a component from `src/components/` |
-| Call a new endpoint                                      | Add a function and its types in `src/lib/api.ts`, plus a test in `src/lib/api.test.ts`   |
-| Change the library                                       | `src/components/library.tsx` and its test                                                |
-| Change the player (and later the read-along reader, #15) | `src/components/story-player.tsx` and its test                                           |
-| Change loading or error messages                         | `src/components/status.tsx`                                                              |
-| Change colours or layout                                 | `src/app/globals.css`                                                                    |
-| Change the Home page                                     | `src/components/home.tsx` and its test                                                   |
-| Change which API the app talks to                        | `NEXT_PUBLIC_API_URL` in `.env.local`, then restart or rebuild                           |
+| You want to...                                           | Edit                                                                                                          |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Add a page                                               | New folder in `src/app/` with `page.tsx` that renders a component from `src/components/`                      |
+| Call a new endpoint                                      | Add a function in `src/lib/api.ts` (types come from `api-types.gen.ts`), plus a test in `src/lib/api.test.ts` |
+| Change the library                                       | `src/components/library.tsx` and its test                                                                     |
+| Change the player (and later the read-along reader, #15) | `src/components/story-player.tsx` and its test                                                                |
+| Change loading or error messages                         | `src/components/status.tsx`                                                                                   |
+| Change colours or layout                                 | `src/app/globals.css`                                                                                         |
+| Change the Home page                                     | `src/components/home.tsx` and its test                                                                        |
+| Change which API the app talks to                        | `NEXT_PUBLIC_API_URL` in `.env.local`, then restart or rebuild                                                |
 
 ## Gotchas
 

@@ -90,6 +90,8 @@ def create_app(
         title="Kasa Genesis API",
         version="1.0.0",
         description="Stories in Ghanaian languages, read aloud. See api/API.md.",
+        docs_url="/docs" if settings.enable_docs else None,
+        redoc_url="/redoc" if settings.enable_docs else None,
     )
     app.add_middleware(
         CORSMiddleware,
