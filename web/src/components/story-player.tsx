@@ -34,6 +34,17 @@ import { storyHref } from "./story-card";
 
 type AudioStatus = "idle" | "loading" | "playing" | "paused" | "ended" | "error";
 
+/** What the audio element last told us about one story. */
+type Heard = { id: string; position: number; duration: number; saved: number; resumeTo: number };
+
+/** Writes down where the child is. Nothing is known while the audio is still loading, or while
+ * a story that was picked up is still finding its place. */
+function writeDown(h: Heard) {
+  if (h.duration <= 0 || h.resumeTo > 0) return;
+  h.saved = h.position;
+  saveProgress(h.id, h.position, h.duration);
+}
+
 const READ_ALONG_KEY = "kasa:read-along";
 const SKIP_SECONDS = 10;
 /** While a story plays, where the child is gets written down this often. */
@@ -62,11 +73,12 @@ export function StoryPlayer({ id }: { id: string }) {
   const theEndRef = useRef<HTMLDivElement>(null);
   // What the audio element last told us, kept outside of state so that leaving the page or
   // locking the phone can still write it down.
-  const heard = useRef({ position: 0, duration: 0, saved: 0, resumeTo: 0 });
+  const heard = useRef<Heard>({ id, position: 0, duration: 0, saved: 0, resumeTo: 0 });
   const { name } = useLanguages();
   const { isSaved, toggle } = useFavorites();
   const all = useApi((signal) => fetchStories(undefined, signal), []);
-  const stars = starCount(useListening());
+  const listening = useListening();
+  const stars = starCount(listening);
 
   // Listening is the default; the read-along choice is remembered on this device.
   useEffect(() => {
@@ -90,7 +102,7 @@ export function StoryPlayer({ id }: { id: string }) {
   useEffect(() => {
     const before = readListening(id);
     const at = before && before.position > 0 ? before.position : 0;
-    heard.current = { position: 0, duration: 0, saved: 0, resumeTo: 0 };
+    heard.current = { id, position: 0, duration: 0, saved: 0, resumeTo: 0 };
     setAudio("idle");
     setPosition(at);
     setDuration(at > 0 ? before!.duration : 0);
@@ -98,17 +110,14 @@ export function StoryPlayer({ id }: { id: string }) {
     setResumeAt(at);
     setTheEnd(null);
 
-    const remember = () => {
-      const { position, duration } = heard.current;
-      if (duration > 0) saveProgress(id, position, duration);
-    };
+    // Locking the phone or leaving the story writes the place down too.
     const onHide = () => {
-      if (document.visibilityState === "hidden") remember();
+      if (document.visibilityState === "hidden") writeDown(heard.current);
     };
     document.addEventListener("visibilitychange", onHide);
     return () => {
       document.removeEventListener("visibilitychange", onHide);
-      remember();
+      writeDown(heard.current);
     };
   }, [id]);
 
@@ -170,12 +179,8 @@ export function StoryPlayer({ id }: { id: string }) {
   // because a failed seek would throw the child back to the start of the story.
   const seekable = known && canSeek;
 
-  const remember = () => {
-    const h = heard.current;
-    if (h.duration <= 0) return;
-    h.saved = h.position;
-    saveProgress(id, h.position, h.duration);
-  };
+  // Only events of this very story count (a late one from the story before does not).
+  const mine = () => heard.current.id === id;
   const togglePlay = () => {
     const el = audioRef.current;
     if (!el) return;
@@ -188,7 +193,11 @@ export function StoryPlayer({ id }: { id: string }) {
       // Go on where the child stopped. Nothing has loaded yet (preload is "none"), so the
       // browser keeps this as the place to start from; readMedia() checks that it got there.
       heard.current.resumeTo = resumeAt;
-      el.currentTime = resumeAt;
+      try {
+        el.currentTime = resumeAt;
+      } catch {
+        /* a browser that cannot take a start time yet: readMedia() seeks once it has loaded */
+      }
       setResumeAt(0);
     }
     // play() rejects when it is interrupted (for example by a quick pause). Real failures arrive
@@ -209,6 +218,7 @@ export function StoryPlayer({ id }: { id: string }) {
     saveProgress(id, 0, duration);
   };
   const readMedia = (el: HTMLAudioElement) => {
+    if (!mine()) return;
     // An unknown length keeps the last known one, so the bar does not jump while audio loads.
     const length = Number.isFinite(el.duration) && el.duration > 0 ? el.duration : 0;
     if (length > 0) {
@@ -223,19 +233,21 @@ export function StoryPlayer({ id }: { id: string }) {
     if (to > 0 && length > 0) {
       if (Math.abs(el.currentTime - to) <= 1) {
         heard.current.resumeTo = 0;
+        heard.current.position = el.currentTime;
       } else if (seekableNow) {
         heard.current.resumeTo = 0;
-        el.currentTime = Math.min(to, length);
+        heard.current.position = Math.min(to, length);
+        el.currentTime = heard.current.position;
       }
     }
   };
   const readTime = (el: HTMLAudioElement) => {
     // Until a picked-up story has loaded, the element may still say 0: keep showing the place.
-    if (heard.current.resumeTo > 0) return;
+    if (!mine() || heard.current.resumeTo > 0) return;
     const t = el.currentTime;
     heard.current.position = t;
     setPosition(t);
-    if (Math.abs(t - heard.current.saved) >= REMEMBER_EVERY_SECONDS) remember();
+    if (Math.abs(t - heard.current.saved) >= REMEMBER_EVERY_SECONDS) writeDown(heard.current);
   };
 
   const playLabel = active
@@ -256,6 +268,12 @@ export function StoryPlayer({ id }: { id: string }) {
           <CoverArt id={id} />
           <span className="chip chip-on-art">{name(language)}</span>
           <Mascot hanging className={`player-mascot ${active ? "mascot-bob" : "mascot-swing"}`} />
+          {listening[id]?.finished && (
+            <span className={`star-badge${theEnd === "star" ? " star-badge-new" : ""}`}>
+              <StarIcon />
+              <span className="visually-hidden">Heard to the end.</span>
+            </span>
+          )}
         </div>
 
         <div className="player-panel paper">
@@ -293,7 +311,7 @@ export function StoryPlayer({ id }: { id: string }) {
             }}
             onPause={() => {
               setAudio("paused");
-              remember();
+              if (mine()) writeDown(heard.current);
             }}
             onEnded={() => {
               setAudio("ended");
@@ -414,7 +432,7 @@ export function StoryPlayer({ id }: { id: string }) {
                 setDuration(0);
                 setCanSeek(false);
                 setResumeAt(0);
-                heard.current = { position: 0, duration: 0, saved: 0, resumeTo: 0 };
+                heard.current = { id, position: 0, duration: 0, saved: 0, resumeTo: 0 };
                 setAttempt((n) => n + 1);
               }}
             />

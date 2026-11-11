@@ -112,6 +112,11 @@ export function markFinished(id: string, duration: number, now = Date.now()) {
   write({ ...store, [id]: { position: 0, duration: known, finished: true, updatedAt: now } });
 }
 
+/** Forgets every star and every place on this device (the Parents page offers this). */
+export function clearListening() {
+  write({});
+}
+
 /** Ids of the stories the child stopped in the middle of, the most recent first. */
 export function inProgress(store: ListeningStore): string[] {
   return Object.keys(store)

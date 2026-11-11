@@ -143,6 +143,12 @@ function Shelves({
           <span className="featured-art">
             <CoverArt id={featured.id} />
             <span className="chip chip-on-art">{languageName(featured.language)}</span>
+            {listening[featured.id]?.finished && (
+              <span className="star-badge">
+                <StarIcon />
+                <span className="visually-hidden">Heard to the end.</span>
+              </span>
+            )}
           </span>
           <span className="featured-body">
             <span className="kicker">
