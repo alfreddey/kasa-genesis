@@ -34,14 +34,15 @@ export async function stubApi(page: Page, opts: { down?: boolean } = {}) {
 }
 
 /**
- * Fails the test when axe finds serious or critical accessibility problems on the page.
- * Colour contrast is not checked yet: the visual design is still changing (#45 owns the
- * contrast audit), so checking it now would only break on every restyle.
+ * Fails the test when axe finds serious or critical accessibility problems on the page,
+ * colour contrast included (#45, design handoff #115). Run it in light and dark.
  */
 export async function expectAccessible(page: Page) {
-  const { violations } = await new AxeBuilder({ page }).disableRules(["color-contrast"]).analyze();
+  const { violations } = await new AxeBuilder({ page }).analyze();
   const serious = violations.filter((v) => v.impact === "serious" || v.impact === "critical");
-  expect(serious.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  expect(
+    serious.map((v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(" ")).join("; ")})`),
+  ).toEqual([]);
 }
 
 export const test = base.extend<{ api: void }>({
