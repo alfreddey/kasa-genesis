@@ -2,9 +2,16 @@
 
 import Link from "next/link";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
-import { ApiError, fetchStories, fetchStory, storyAudioUrl } from "@/lib/api";
+import { ApiError, fetchStories, fetchStory, storyAudioUrl, type StorySummary } from "@/lib/api";
 import { useFavorites } from "@/lib/favorites";
 import { htmlLang } from "@/lib/home";
+import {
+  markFinished,
+  readListening,
+  saveProgress,
+  starCount,
+  useListening,
+} from "@/lib/listening";
 import { formatTime, spokenTime } from "@/lib/time";
 import { useApi } from "@/lib/use-api";
 import { useLanguages } from "@/lib/use-languages";
@@ -19,6 +26,7 @@ import {
   PauseIcon,
   PlayIcon,
   RestartIcon,
+  StarIcon,
 } from "./icons";
 import { Mascot } from "./mascot";
 import { ErrorState, Loading } from "./status";
@@ -28,10 +36,14 @@ type AudioStatus = "idle" | "loading" | "playing" | "paused" | "ended" | "error"
 
 const READ_ALONG_KEY = "kasa:read-along";
 const SKIP_SECONDS = 10;
+/** While a story plays, where the child is gets written down this often. */
+const REMEMBER_EVERY_SECONDS = 5;
 
 /**
  * The player page (/stories/:id). Listening comes first: a big cover, one big play button, a
  * chunky progress bar and 10-second skips. The words are an extra the reader switches on.
+ * The player remembers where the child stopped and goes on from there next time, and a story
+ * heard to the end gets a happy ending and a star.
  */
 export function StoryPlayer({ id }: { id: string }) {
   const story = useApi((signal) => fetchStory(id, signal), [id]);
@@ -41,10 +53,20 @@ export function StoryPlayer({ id }: { id: string }) {
   const [canSeek, setCanSeek] = useState(false);
   const [readAlong, setReadAlong] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  // Seconds into the story where the child stopped last time (0: start from the top). The next
+  // press of play goes on from there.
+  const [resumeAt, setResumeAt] = useState(0);
+  // The happy ending: shown when the story played to its end, with a star the first time.
+  const [theEnd, setTheEnd] = useState<"star" | "again" | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const theEndRef = useRef<HTMLDivElement>(null);
+  // What the audio element last told us, kept outside of state so that leaving the page or
+  // locking the phone can still write it down.
+  const heard = useRef({ position: 0, duration: 0, saved: 0, resumeTo: 0 });
   const { name } = useLanguages();
   const { isSaved, toggle } = useFavorites();
   const all = useApi((signal) => fetchStories(undefined, signal), []);
+  const stars = starCount(useListening());
 
   // Listening is the default; the read-along choice is remembered on this device.
   useEffect(() => {
@@ -63,13 +85,40 @@ export function StoryPlayer({ id }: { id: string }) {
     }
   };
 
-  // Another story starts from the beginning.
+  // Another story starts fresh, at the place where the child stopped in it (if anywhere). The
+  // remembered length lets the progress bar show that place before any audio has loaded.
   useEffect(() => {
+    const before = readListening(id);
+    const at = before && before.position > 0 ? before.position : 0;
+    heard.current = { position: 0, duration: 0, saved: 0, resumeTo: 0 };
     setAudio("idle");
-    setPosition(0);
-    setDuration(0);
+    setPosition(at);
+    setDuration(at > 0 ? before!.duration : 0);
     setCanSeek(false);
+    setResumeAt(at);
+    setTheEnd(null);
+
+    const remember = () => {
+      const { position, duration } = heard.current;
+      if (duration > 0) saveProgress(id, position, duration);
+    };
+    const onHide = () => {
+      if (document.visibilityState === "hidden") remember();
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      remember();
+    };
   }, [id]);
+
+  // The happy ending may appear below the fold on a phone: bring it into view. (The story is
+  // over, so nothing the child was doing is interrupted.)
+  useEffect(() => {
+    if (!theEnd) return;
+    const calm = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    theEndRef.current?.scrollIntoView?.({ block: "center", behavior: calm ? "auto" : "smooth" });
+  }, [theEnd]);
 
   const back = (
     <Link href="/library" className="btn btn-paper btn-small" aria-label="Back to the library">
@@ -121,6 +170,12 @@ export function StoryPlayer({ id }: { id: string }) {
   // because a failed seek would throw the child back to the start of the story.
   const seekable = known && canSeek;
 
+  const remember = () => {
+    const h = heard.current;
+    if (h.duration <= 0) return;
+    h.saved = h.position;
+    saveProgress(id, h.position, h.duration);
+  };
   const togglePlay = () => {
     const el = audioRef.current;
     if (!el) return;
@@ -129,6 +184,13 @@ export function StoryPlayer({ id }: { id: string }) {
       return;
     }
     if (el.ended) el.currentTime = 0;
+    else if (resumeAt > 0) {
+      // Go on where the child stopped. Nothing has loaded yet (preload is "none"), so the
+      // browser keeps this as the place to start from; readMedia() checks that it got there.
+      heard.current.resumeTo = resumeAt;
+      el.currentTime = resumeAt;
+      setResumeAt(0);
+    }
     // play() rejects when it is interrupted (for example by a quick pause). Real failures arrive
     // through the element's error event, so the rejection itself can be ignored.
     void Promise.resolve(el.play()).catch(() => undefined);
@@ -138,15 +200,51 @@ export function StoryPlayer({ id }: { id: string }) {
     if (!el) return;
     const clamped = Math.min(Math.max(to, 0), duration);
     el.currentTime = clamped;
+    heard.current.position = clamped;
     setPosition(clamped);
   };
+  const startAgain = () => {
+    setResumeAt(0);
+    setPosition(0);
+    saveProgress(id, 0, duration);
+  };
   const readMedia = (el: HTMLAudioElement) => {
-    setDuration(Number.isFinite(el.duration) && el.duration > 0 ? el.duration : 0);
+    // An unknown length keeps the last known one, so the bar does not jump while audio loads.
+    const length = Number.isFinite(el.duration) && el.duration > 0 ? el.duration : 0;
+    if (length > 0) {
+      heard.current.duration = length;
+      setDuration(length);
+    }
     const ranges = el.seekable;
-    setCanSeek(Boolean(ranges) && ranges.length > 0 && ranges.end(ranges.length - 1) > 0);
+    const seekableNow = Boolean(ranges) && ranges.length > 0 && ranges.end(ranges.length - 1) > 0;
+    setCanSeek(seekableNow);
+    // The audio has loaded: make sure a story that was picked up really is at that place.
+    const to = heard.current.resumeTo;
+    if (to > 0 && length > 0) {
+      if (Math.abs(el.currentTime - to) <= 1) {
+        heard.current.resumeTo = 0;
+      } else if (seekableNow) {
+        heard.current.resumeTo = 0;
+        el.currentTime = Math.min(to, length);
+      }
+    }
+  };
+  const readTime = (el: HTMLAudioElement) => {
+    // Until a picked-up story has loaded, the element may still say 0: keep showing the place.
+    if (heard.current.resumeTo > 0) return;
+    const t = el.currentTime;
+    heard.current.position = t;
+    setPosition(t);
+    if (Math.abs(t - heard.current.saved) >= REMEMBER_EVERY_SECONDS) remember();
   };
 
-  const playLabel = active ? "Pause" : audio === "ended" ? "Play again" : "Play";
+  const playLabel = active
+    ? "Pause"
+    : audio === "ended"
+      ? "Play again"
+      : resumeAt > 0
+        ? "Keep listening"
+        : "Play";
   const progress = known ? Math.min(100, (position / duration) * 100) : 0;
 
   return (
@@ -182,13 +280,37 @@ export function StoryPlayer({ id }: { id: string }) {
             preload="none"
             src={storyAudioUrl(id)}
             aria-label={`Listen to ${title}`}
-            onPlay={() => setAudio("loading")}
+            onPlay={() => {
+              setAudio("loading");
+              setTheEnd(null);
+            }}
             onWaiting={() => setAudio("loading")}
-            onPlaying={() => setAudio("playing")}
-            onPause={() => setAudio("paused")}
-            onEnded={() => setAudio("ended")}
+            onPlaying={() => {
+              // If the browser could not jump to the remembered place, the story simply plays
+              // from wherever it is.
+              heard.current.resumeTo = 0;
+              setAudio("playing");
+            }}
+            onPause={() => {
+              setAudio("paused");
+              remember();
+            }}
+            onEnded={() => {
+              setAudio("ended");
+              setTheEnd(readListening(id)?.finished ? "again" : "star");
+              markFinished(id, heard.current.duration);
+            }}
             onError={() => setAudio("error")}
-            onTimeUpdate={(e) => setPosition(e.currentTarget.currentTime)}
+            onTimeUpdate={(e) => readTime(e.currentTarget)}
+            onSeeked={(e) => {
+              // A drag or a skip while paused: show the new time, and offer "Play again" when
+              // the child dragged all the way to the end (pressing play there starts over).
+              const el = e.currentTarget;
+              readTime(el);
+              if (el.paused)
+                setAudio((now) => (el.ended ? "ended" : now === "ended" ? "paused" : now));
+              if (!el.ended) setTheEnd(null);
+            }}
             onLoadedMetadata={(e) => readMedia(e.currentTarget)}
             onDurationChange={(e) => readMedia(e.currentTarget)}
             onProgress={(e) => readMedia(e.currentTarget)}
@@ -247,7 +369,42 @@ export function StoryPlayer({ id }: { id: string }) {
             </div>
           </div>
 
+          {resumeAt > 0 && audio === "idle" && (
+            <button
+              type="button"
+              className="btn btn-paper btn-small start-again"
+              aria-label="Start again from the beginning"
+              onClick={startAgain}
+            >
+              <RestartIcon />
+              Start again
+            </button>
+          )}
+
           {audio === "loading" && <Loading label="Preparing the audio…" />}
+          {theEnd && audio === "ended" && (
+            <div className="the-end" ref={theEndRef}>
+              <div className="the-end-cheer">
+                <span className="the-end-art" aria-hidden="true">
+                  <StarIcon />
+                  <StarIcon />
+                  <StarIcon />
+                  <Mascot className="mascot-bob" />
+                </span>
+                <div className="the-end-text" role="status">
+                  <p className="the-end-title">The end!</p>
+                  <p>
+                    {theEnd === "again"
+                      ? "You heard the whole story again."
+                      : stars > 1
+                        ? `You won a star! Now you have ${stars}.`
+                        : "You won your first star!"}
+                  </p>
+                </div>
+              </div>
+              {next && <NextStory story={next} />}
+            </div>
+          )}
           {audio === "error" && (
             <ErrorState
               error={new Error("The audio could not be played. Try again in a moment.")}
@@ -256,6 +413,8 @@ export function StoryPlayer({ id }: { id: string }) {
                 setPosition(0);
                 setDuration(0);
                 setCanSeek(false);
+                setResumeAt(0);
+                heard.current = { position: 0, duration: 0, saved: 0, resumeTo: 0 };
                 setAttempt((n) => n + 1);
               }}
             />
@@ -282,23 +441,28 @@ export function StoryPlayer({ id }: { id: string }) {
           )}
         </div>
 
-        {next && (
-          <Link href={storyHref(next)} className="next-story">
-            <span className="next-art">
-              <CoverArt id={next.id} />
-            </span>
-            <span className="next-text">
-              <span className="kicker">Next story</span>
-              <span className="next-title" lang={htmlLang(next.language)}>
-                {next.title}
-              </span>
-            </span>
-            <span className="next-arrow" aria-hidden="true">
-              <ArrowRightIcon />
-            </span>
-          </Link>
-        )}
+        {/* At the happy ending the next story sits right under "The end!" instead. */}
+        {next && !(theEnd && audio === "ended") && <NextStory story={next} />}
       </article>
     </AppShell>
+  );
+}
+
+function NextStory({ story }: { story: StorySummary }) {
+  return (
+    <Link href={storyHref(story)} className="next-story">
+      <span className="next-art">
+        <CoverArt id={story.id} />
+      </span>
+      <span className="next-text">
+        <span className="kicker">Next story</span>
+        <span className="next-title" lang={htmlLang(story.language)}>
+          {story.title}
+        </span>
+      </span>
+      <span className="next-arrow" aria-hidden="true">
+        <ArrowRightIcon />
+      </span>
+    </Link>
   );
 }
