@@ -33,7 +33,8 @@ export default async function StoryPage({ params }: Props) {
           }}
         />
       )}
-      <StoryPlayer id={id} />
+      {/* The key gives every story its own player, so nothing of the last story lingers. */}
+      <StoryPlayer key={id} id={id} />
     </>
   );
 }

@@ -16,3 +16,10 @@ export function spokenTime(seconds: number): string {
   if (rest > 0 || minutes === 0) parts.push(`${rest} second${rest === 1 ? "" : "s"}`);
   return parts.join(" ");
 }
+
+/** What is left of a story, in short words: 150 -> "3 minutes left", under a minute -> "Almost done". */
+export function timeLeft(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 60) return "Almost done";
+  const minutes = Math.round(seconds / 60);
+  return `${minutes} minute${minutes === 1 ? "" : "s"} left`;
+}

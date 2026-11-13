@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { formatTime, spokenTime } from "./time";
+import { formatTime, spokenTime, timeLeft } from "./time";
 
 it("writes seconds as a clock", () => {
   expect(formatTime(0)).toBe("0:00");
@@ -21,4 +21,12 @@ it("says the time in words for screen readers", () => {
   expect(spokenTime(60)).toBe("1 minute");
   expect(spokenTime(83)).toBe("1 minute 23 seconds");
   expect(spokenTime(121)).toBe("2 minutes 1 second");
+});
+
+it("says how much of a story is left in short words", () => {
+  expect(timeLeft(8)).toBe("Almost done");
+  expect(timeLeft(59)).toBe("Almost done");
+  expect(timeLeft(60)).toBe("1 minute left");
+  expect(timeLeft(150)).toBe("3 minutes left");
+  expect(timeLeft(Number.NaN)).toBe("Almost done");
 });

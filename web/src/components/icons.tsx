@@ -94,3 +94,9 @@ export const SparkleIcon = () => (
     <path d="M19 15.5c.3 2 1 2.7 3 3-2 .3-2.7 1-3 3-.3-2-1-2.7-3-3 2-.3 2.7-1 3-3z" />
   </Icon>
 );
+/** A chunky five-point star: one for every story heard to the end. */
+export const StarIcon = () => (
+  <Icon filled>
+    <path d="M12 3l2.47 6.1 6.57.46-5.05 4.24 1.59 6.39L12 16.7l-5.58 3.49 1.59-6.39-5.05-4.24 6.57-.46z" />
+  </Icon>
+);

@@ -23,7 +23,7 @@ src/app/                    Routes (App Router). Pages stay thin and render a co
   error.tsx, global-error.tsx  Error boundaries (page crash / root layout crash), "Try again".
   globals.css               Design tokens (Figma names, light + dark) and every style: paper, buttons, scene, mascot, covers, pages.
 src/components/             UI. One component per file, kebab-case names, test next to it.
-  home.tsx                  Home: greeting, language tiles, story of the day, shelf. Fetches languages + stories.
+  home.tsx                  Home: greeting and star count, language tiles, "Keep listening" card, story of the day, shelf. Fetches languages + stories.
   cover-art.tsx             Generated cover: one of six place scenes in one of four palettes, both picked from the story id.
   app-shell.tsx             Shared page frame: <Scene>, content column, <TabBar>. Every app page renders inside it.
   scene.tsx                 The backdrop: sky, sun, clouds, hills, acacia (moon, stars and fireflies in dark mode). Decorative.
@@ -31,12 +31,12 @@ src/components/             UI. One component per file, kebab-case names, test n
   tab-bar.tsx               Glass navigation (bottom bar, side rail from tablet width): Home, Library, Saved, Parents; only the current tab's icon is highlighted.
   library.tsx               Library: search, language filter, big cover grid.
   saved.tsx                 Saved stories (from favorites in localStorage).
-  parents.tsx               Parents placeholder.
-  story-card.tsx            Paper tile linking to a story; storyHref(). story-grid.tsx lays cards out (2/3/4/5 columns).
+  parents.tsx               Parents placeholder, plus what is remembered on this device and a button to forget it.
+  story-card.tsx            Paper tile linking to a story, with a star sticker (heard to the end) or a progress bar (started); storyHref(). story-grid.tsx lays cards out (2/3/4/5 columns).
   language-filter.tsx       Language picker: paper buttons, the chosen one stays pressed in (aria-pressed).
   icons.tsx                 Inline SVG icons (currentColor).
   plain-page.tsx            Scene + site header + narrow paper card for the error and 404 pages.
-  story-player.tsx          Player page: cover, a hidden <audio> driven by our own controls (play/pause, 10 s skips, a progress bar to drag), heart (save), "Show the words" switch (listening is the default), next story link.
+  story-player.tsx          Player page: cover, a hidden <audio> driven by our own controls (play/pause, 10 s skips, a progress bar to drag), heart (save), "Show the words" switch (listening is the default), next story link. Picks a story up where the child stopped and ends with "The end!" and a star.
   offline-banner.tsx        Shown in the layout when the browser goes offline.
   error-view.tsx            Friendly crash fallback used by error.tsx.
   status.tsx                <Loading> and <ErrorState> (with retry), both with the mascot. Use these for every async state.
@@ -44,9 +44,10 @@ src/lib/
   api.ts                    Typed API client: apiFetch, fetchStories/fetchStory/fetchLanguages, storyAudioUrl, ApiError.
   api-types.gen.ts          GENERATED from api/openapi.json by `npm run generate:api`. Never edit by hand.
   favorites.ts              useFavorites(): saved story ids in localStorage.
+  listening.ts              useListening(): per story, where the child stopped and whether it was heard to the end (localStorage). saveProgress(), markFinished(), clearListening(), inProgress(), starCount().
   use-languages.ts          useLanguages(): languages plus name(code).
   home.ts                   Home and cover helpers: coverPalette(id), coverScene(id), storyOfTheDay(), shortLanguageName(), htmlLang(code).
-  time.ts                   formatTime(seconds) -> "1:23" and spokenTime(seconds) -> "1 minute 23 seconds" for the player.
+  time.ts                   formatTime(seconds) -> "1:23", spokenTime(seconds) -> "1 minute 23 seconds" and timeLeft(seconds) -> "3 minutes left".
   seo.ts                    Server-side SEO helpers: siteUrl() (SITE_URL), failure-tolerant getStory/getStories, JSON-LD.
   use-api.ts                useApi(load, deps): loading/error/success state, abort on unmount, retry().
 src/test/fetch.ts           mockApi(routes): stubs global fetch with canned /api/v1 responses.
@@ -82,6 +83,7 @@ Before pushing, run `npm run lint && npm run typecheck && npm test && npm run bu
 - **Calling the API.** Only through `src/lib/api.ts`. Add one small function per endpoint that calls `apiFetch`, and use it from a component through `useApi`. Never call `fetch` directly from a component. `apiFetch` adds the base URL, a 10 s timeout and turns failures into `ApiError` (`status` 0 means the API was unreachable or too slow).
 - **Async states.** Every fetch shows `<Loading>` while waiting and `<ErrorState onRetry=...>` on failure. A 404 shows a friendly message without retry.
 - **Audio.** Use the URL from `storyAudioUrl(id)` as the `<audio>` `src`; the browser streams it. The first request for a story can be slow because the API synthesizes it, so show a status while the element is waiting. The player hides the browser's own controls and drives the element itself, so every button follows the element's events (`play`, `waiting`, `playing`, `pause`, `ended`, `error`, `timeupdate`), never a guess. Seeking needs the server to answer `Range` requests (the API does for story audio). The skip buttons and the progress bar stay disabled until `audio.seekable` says seeking is possible, because a failed seek jumps back to the start of the story.
+- **What the app remembers.** Only through `src/lib/listening.ts`, never `localStorage` directly. The player writes the place down every 5 seconds while a story plays, on pause, and when the page is hidden or left; a stop in the first or last 5 seconds is not kept. A star is earned only by the audio's `ended` event (a drag to the end does not count). Resuming sets `currentTime` before the audio loads (it keeps `preload="none"`) and checks the place again in `readMedia()`. The story page renders the player with `key={id}`, so each story gets a fresh one. No streaks, goals or reminders: see "What the app remembers" in `docs/design-direction.md`.
 - **Styling.** Plain CSS in `globals.css`, following the three rules in `docs/design-direction.md`. Paper holds: everything you read or press sits on a solid surface (`.paper`), never on glass or straight on a picture. Edges press: anything tappable has a solid bottom edge (`--edge-size`) and sinks when pressed (`.btn`, `.segment`, `.play-main`); if it has no edge it is not a button. Glass floats: `.glass` (blur, with a solid fallback for no `backdrop-filter` and `prefers-reduced-transparency`) is only for the navigation. Colors, spacing, radius, motion and type come from CSS variables named after the Figma variables (`--color-text-primary`, `--radius-md`, ...); use them instead of hex values, and change a token in Figma and here by the same name. Tokens marked "storybook" in `globals.css` exist only in code so far. `:root` is Color Light, the `prefers-color-scheme: dark` block is Color Dark (a moonlit scene). Font is Nunito via `@fontsource-variable/nunito`. Layouts are phone first: from 768px the bottom tab bar becomes a side rail and the featured card goes wide, from 1100px the player splits into cover and controls, and a small block below 360px keeps the player controls inside their panel. Touch targets are at least 48px. Respect `prefers-reduced-motion`: one block at the end of the file switches every animation off.
 - **Accessibility.** Status text uses `role="status"`, errors `role="alert"`, controls have labels, and story titles and story text carry `lang` set through `htmlLang()` (the BCP 47 tag for the story's language code). The scene, the mascot and the covers are decorative (`aria-hidden`), so they never carry meaning on their own. White text on the orange button only passes contrast as large bold text; keep it at `--text-label-lg`. Tests query by role and label, which keeps this honest.
 - **Tests.** Vitest + React Testing Library, file next to the code as `*.test.ts(x)`. Mock the network with `mockApi` from `src/test/fetch.ts`, never a real API. Query by role, label or text; use `userEvent` for interaction. jsdom cannot play media, so the player tests stub `play` and `pause` on `HTMLMediaElement.prototype` and fire the media events by hand.
@@ -97,6 +99,7 @@ Before pushing, run `npm run lint && npm run typecheck && npm test && npm run bu
 | Change the library                                       | `src/components/library.tsx` and its test                                                                     |
 | Change the player (and later the read-along reader, #15) | `src/components/story-player.tsx` and its test                                                                |
 | Change loading or error messages                         | `src/components/status.tsx`                                                                                   |
+| Change what is remembered about listening                | `src/lib/listening.ts` and its test; the player, Home, the story card and Parents read it                     |
 | Change colours or layout                                 | `src/app/globals.css` (read `docs/design-direction.md` first)                                                 |
 | Change the mascot or the backdrop                        | `src/components/mascot.tsx`, `src/components/scene.tsx` and their styles in `src/app/globals.css`             |
 | Add or change a cover scene                              | `src/components/cover-art.tsx` and the scene list in `src/lib/home.ts`                                        |

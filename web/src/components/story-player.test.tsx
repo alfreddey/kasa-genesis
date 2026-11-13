@@ -154,6 +154,126 @@ it("keeps skipping switched off when the browser cannot seek in the audio", asyn
   expect(screen.getByText("0:20")).toBeInTheDocument();
 });
 
+const remembered = () => JSON.parse(window.localStorage.getItem("kasa:listening") ?? "{}");
+const remember = (entry: object) =>
+  window.localStorage.setItem("kasa:listening", JSON.stringify({ "twi-greetings": entry }));
+
+it("writes down where the child is while the story plays, and when it is paused", async () => {
+  const audio = await renderPlayer();
+  loadAudio(audio, { duration: 83, at: 2 });
+  expect(remembered()).toEqual({});
+
+  audio.currentTime = 12;
+  fireEvent.timeUpdate(audio);
+  expect(remembered()["twi-greetings"]).toMatchObject({ position: 12, duration: 83 });
+
+  audio.currentTime = 14;
+  fireEvent.timeUpdate(audio);
+  expect(remembered()["twi-greetings"].position).toBe(12);
+  fireEvent.pause(audio);
+  expect(remembered()["twi-greetings"]).toMatchObject({ position: 14, finished: false });
+});
+
+it("writes the place down when the child leaves the story", async () => {
+  mockApi(routes);
+  const { unmount } = render(<StoryPlayer id="twi-greetings" />);
+  const audio = (await screen.findByLabelText("Listen to Twi greetings")) as HTMLAudioElement;
+  loadAudio(audio, { duration: 83, at: 6 });
+  audio.currentTime = 9;
+  fireEvent.timeUpdate(audio);
+  expect(remembered()["twi-greetings"]).toMatchObject({ position: 6 });
+  unmount();
+  expect(remembered()["twi-greetings"]).toMatchObject({ position: 9 });
+});
+
+it("shows where the child stopped and goes on from there", async () => {
+  remember({ position: 42, duration: 83, finished: false, updatedAt: 1 });
+  const audio = await renderPlayer();
+
+  expect(screen.getByText("0:42")).toBeInTheDocument();
+  expect(screen.getByText("1:23")).toBeInTheDocument();
+  expect(screen.getByRole("slider", { name: "Story progress" })).toHaveAttribute(
+    "aria-valuetext",
+    "42 seconds of 1 minute 23 seconds",
+  );
+  expect(screen.queryByRole("button", { name: "Play" })).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole("button", { name: "Keep listening" }));
+  expect(audio.currentTime).toBe(42);
+  expect(audio.play).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("button", { name: /Start again/ })).not.toBeInTheDocument();
+
+  // A browser that starts at 0 anyway is moved to the place once it can seek.
+  fireEvent.play(audio);
+  loadAudio(audio, { duration: 83, at: 0 });
+  expect(audio.currentTime).toBe(42);
+  expect(screen.getByText("0:42")).toBeInTheDocument();
+});
+
+it("starts from the top when the child asks to start again", async () => {
+  remember({ position: 42, duration: 83, finished: false, updatedAt: 1 });
+  const audio = await renderPlayer();
+
+  await userEvent.click(screen.getByRole("button", { name: "Start again from the beginning" }));
+  expect(screen.getByText("0:00")).toBeInTheDocument();
+  expect(remembered()).toEqual({});
+
+  await userEvent.click(screen.getByRole("button", { name: "Play" }));
+  expect(audio.currentTime).toBe(0);
+});
+
+it("ends happily with a star and the next story", async () => {
+  const audio = await renderPlayer();
+  loadAudio(audio, { duration: 20, at: 20 });
+  expect(await screen.findByRole("link", { name: /Next story/ })).toBeInTheDocument();
+
+  fireEvent.pause(audio);
+  fireEvent.ended(audio);
+  const status = screen.getByRole("status");
+  expect(status).toHaveTextContent("The end!");
+  expect(status).toHaveTextContent("You won your first star!");
+  expect(remembered()["twi-greetings"]).toMatchObject({ position: 0, finished: true });
+  expect(screen.getAllByRole("link", { name: /Next story.*Ewe greetings/ })).toHaveLength(1);
+
+  // Playing it again clears the ending, and a second ending does not hand out a second star.
+  fireEvent.play(audio);
+  expect(screen.queryByText("The end!")).not.toBeInTheDocument();
+  fireEvent.ended(audio);
+  expect(screen.getByRole("status")).toHaveTextContent("You heard the whole story again.");
+});
+
+it("counts the stars the child already has at the ending", async () => {
+  window.localStorage.setItem(
+    "kasa:listening",
+    JSON.stringify({ "ewe-greetings": { position: 0, duration: 9, finished: true, updatedAt: 1 } }),
+  );
+  const audio = await renderPlayer();
+  loadAudio(audio, { duration: 20, at: 20 });
+  fireEvent.ended(audio);
+  expect(screen.getByRole("status")).toHaveTextContent("You won a star! Now you have 2.");
+});
+
+it("offers Play again when the bar is dragged to the end while paused", async () => {
+  const audio = await renderPlayer();
+  loadAudio(audio, { duration: 20, at: 5 });
+  fireEvent.pause(audio);
+
+  audio.currentTime = 20;
+  Object.defineProperty(audio, "ended", { configurable: true, value: true });
+  fireEvent.seeked(audio);
+  expect(screen.getByRole("button", { name: "Play again" })).toBeInTheDocument();
+  expect(screen.getByText("0:20", { selector: ".progress-times span:first-child" })).toBeVisible();
+  // Dragging there is not hearing the story: no ending, no star.
+  expect(screen.queryByText("The end!")).not.toBeInTheDocument();
+  expect(remembered()).toEqual({});
+
+  audio.currentTime = 8;
+  Object.defineProperty(audio, "ended", { configurable: true, value: false });
+  fireEvent.seeked(audio);
+  expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
+  expect(screen.getByText("0:08")).toBeInTheDocument();
+});
+
 it("shows progress while audio is prepared, and an error if it fails", async () => {
   const audio = await renderPlayer();
 
