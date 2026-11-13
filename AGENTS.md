@@ -35,7 +35,8 @@ stories/                Story content as JSON, shared by api/ and web/.
 docs/                   Design notes and research. docs/experimentation.md: how to try ideas fast.
                         docs/content-guide.md: story fields, spelling rules, rights, review checklist.
                         docs/api.md: curl examples, versioning rule, how to change the contract.
-                        docs/db-schema.md: the database design (#71). docs/adr/: decision records.
+                        docs/db-schema.md: the database design (#71). docs/architecture.md: the pieces and how they fit.
+                        docs/adr/: decision records (template in 0000-template.md).
                         docs/design-direction.md: the look of the web app ("Sunny storybook") and why.
 experiments/            Dated experiment folders (write-up + code). _template/ is the starter.
 .env.example            Every setting the API reads (ALLOWED_ORIGINS, CACHE_DIR, KASA_VOICE, ...).
@@ -84,6 +85,7 @@ Without make: `cd api && python3 -m venv .venv && . .venv/bin/activate && pip in
 
 ## Conventions
 
+- Before you propose a change to hosting, CI, the TTS model or voice, how audio is stored, the database, or the frontend/API split, read the matching record in `docs/adr/`. Add a new ADR (copy `docs/adr/0000-template.md`) for any new decision of the same size, and mark the old one superseded rather than rewriting it.
 - Tests never load the real model. Use the `client` and `synth` fixtures from `api/tests/conftest.py`; `synth.calls` records what was synthesized.
 - Heavy imports (`torch`, `transformers`) stay inside functions so the API and tests start without them.
 - Language codes are ISO 639-3 (`aka`, `ewe`), and every story's `language` must be in `LANGUAGES` (a test checks this).
