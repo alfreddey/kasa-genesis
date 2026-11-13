@@ -124,6 +124,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/stories/{story_id}/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Story Manifest
+         * @description The story as a list of sentences, each with its text, audio file and length.
+         *
+         *     Sentences not stored yet are read aloud first (like `/audio`, this can take a while
+         *     and may answer 503 with Retry-After; `python -m kasa.generate` prepares them ahead).
+         *     The audio files never change once made, so clients may keep them for a year.
+         */
+        get: operations["story_manifest_api_v1_stories__story_id__manifest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audio/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Audio Clip
+         * @description One stored sentence, by the key from a manifest. Never changes, so cache it for a year.
+         */
+        get: operations["audio_clip_api_v1_audio__key__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tts": {
         parameters: {
             query?: never;
@@ -152,6 +196,55 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AudioManifest
+         * @description A story as sentences, for a player that highlights the sentence being read.
+         */
+        AudioManifest: {
+            /**
+             * Story Id
+             * @example twi-greetings
+             */
+            story_id: string;
+            /** Sentences */
+            sentences: components["schemas"]["AudioSentence"][];
+            /**
+             * Pause Seconds
+             * @description Silence the whole-story `/audio` file puts between sentences.
+             * @example 0.35
+             */
+            pause_seconds: number;
+            /**
+             * Total Seconds
+             * @description Length of the whole-story `/audio` file.
+             */
+            total_seconds: number;
+        };
+        /** AudioSentence */
+        AudioSentence: {
+            /**
+             * Index
+             * @description Position in the story, from 0.
+             * @example 0
+             */
+            index: number;
+            /**
+             * Text
+             * @description The sentence as it is read aloud.
+             */
+            text: string;
+            /**
+             * Url
+             * @description Path of this sentence's WAV on the API. Its name is a hash of the content, so the file never changes.
+             * @example /api/v1/audio/3f2a...
+             */
+            url: string;
+            /**
+             * Duration Seconds
+             * @example 2.4
+             */
+            duration_seconds: number;
+        };
         /**
          * ErrorResponse
          * @description Body of every 4xx error the API raises itself (FastAPI's 422 has a list instead).
@@ -518,6 +611,147 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    story_manifest_api_v1_stories__story_id__manifest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioManifest"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    audio_clip_api_v1_audio__key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Mono 16-bit PCM WAV. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "audio/wav": string;
+                };
+            };
+            /** @description Part of the audio: the bytes asked for in the Range header. */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "audio/wav": string;
+                };
+            };
+            /** @description Not modified: the If-None-Match ETag still matches. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description The Range header starts past the end of the audio. */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
