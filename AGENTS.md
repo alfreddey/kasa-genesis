@@ -16,7 +16,9 @@ api/                    Python API (FastAPI). Has its own AGENTS.md.
   kasa/app.py           All HTTP routes (/api/v1, /healthz). create_app(synth=, stories=, settings=).
   kasa/schemas.py       Pydantic request/response models of the contract.
   kasa/config.py        Settings from env / .env via pydantic-settings.
-  kasa/cache.py         Audio cache (memory or CACHE_DIR) and the Speaker that uses it.
+  kasa/cache.py         Per-sentence audio store (memory or CACHE_DIR) and the Speaker that uses it.
+  kasa/speaker.py       Builds the voice + store from Settings, shared by the API and kasa.generate.
+  kasa/generate.py      CLI: python -m kasa.generate --all stores story audio ahead of time (make generate).
   kasa/tts.py           Synthesizer protocol, sentence splitting, WAV encoding, MmsSynthesizer.
   kasa/voices.py        Picks the voice from KASA_VOICE: mms, abena, tone, silent, or "module:attribute".
   kasa/abena.py         AbenaSynthesizer: hosted Abena AI voice for Twi and Ewe (ABENA_API_KEY, ABENA_BASE_URL, ABENA_VOICES).
@@ -65,6 +67,7 @@ Run from the repo root.
 | Serve at http://localhost:8000 | `make run` |
 | Serve with the instant placeholder voice (no model) | `make dev` |
 | Listen to voices side by side | `make say TEXT="Akwaaba" LANG=aka VOICE=mms,tone` |
+| Store story audio ahead of time | `make generate ARGS="--all"` |
 | Run everything in containers | `docker compose up --build` (see `docs/docker.md`) |
 | Start an experiment folder | `make experiment NAME=2026_11_topic` |
 
@@ -91,7 +94,7 @@ Without make: `cd api && python3 -m venv .venv && . .venv/bin/activate && pip in
 - Language codes are ISO 639-3 (`aka`, `ewe`), and every story's `language` must be in `LANGUAGES` (a test checks this).
 - Before you add or edit a story, read `docs/content-guide.md` (spelling per language, writing rules for the voice, rights). Never "fix" spelling in a language you cannot verify; ask a native speaker.
 - Story text uses the proper letters (ɛ, ɔ, ŋ, ƒ, ʋ), not look-alikes such as Greek ε, and is saved in Unicode NFC. Files are UTF-8. A test fails if a bundled story would change under `normalize_text`.
-- One test file per module: `test_abena.py`, `test_api.py`, `test_tts.py`, `test_text.py`, `test_stories.py`, `test_voices.py`, `test_flags.py`, `test_say.py`, `test_observability.py`.
+- One test file per module: `test_abena.py`, `test_api.py`, `test_tts.py`, `test_text.py`, `test_stories.py`, `test_voices.py`, `test_flags.py`, `test_say.py`, `test_generate.py`, `test_observability.py`.
 - `kasa.app` builds its voice and flags at import, from `KASA_VOICE` and `KASA_FLAGS`. Tests pass `synth=` and `flags=` to `create_app` instead of setting env vars.
 - Never commit weights, datasets or generated audio; `experiments/*/output/` is ignored for that.
 - Branches: `claude/...` for agent work. Small PRs that reference the issue they close. Commits and PR titles use Conventional Commits (see CONTRIBUTING.md).

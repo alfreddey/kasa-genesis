@@ -1,6 +1,6 @@
 # ADR 0007: Generate story audio once and store it
 
-- Status: accepted (partly built: audio is cached on first request today)
+- Status: accepted (mostly built: per-sentence store, manifest and `kasa.generate`; compression and word timings still to do)
 - Date: 2026-11-05
 - Issues: #12 (stored audio), #37 (background jobs), #17 (abuse protection)
 
@@ -22,6 +22,6 @@ We synthesize each story once with our model and store the audio, then serve sto
 
 ## Consequences
 
-- Today the API caches whole-story audio on first request (memory or `CACHE_DIR`). The per-sentence store, a `kasa.generate` command, the manifest endpoint and compressed audio are still to build (#12).
+- Audio is stored per sentence (memory or `CACHE_DIR`), `GET /stories/{id}/manifest` lists the sentences and `python -m kasa.generate` prepares stories ahead of time. Still to build (#12): compressed audio (Opus or MP3), word-level timings (Abena returns only a total duration, so read-along highlights whole sentences for now) and an S3-compatible store.
 - New synthesis is rate limited and concurrency capped (#17), so the cache cannot be used to overload the API.
 - Premium story audio will need signed URLs (#76) while free stories stay publicly cacheable.
