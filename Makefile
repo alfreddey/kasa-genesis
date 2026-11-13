@@ -4,7 +4,7 @@
 VENV := api/.venv
 PY := $(VENV)/bin/python
 
-.PHONY: help setup setup-tts test lint check-docs openapi run dev say experiment clean
+.PHONY: help setup setup-tts test lint check-docs openapi run dev generate say experiment clean
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
@@ -35,6 +35,9 @@ run: ## Serve the API and page at http://localhost:8000 (voice from KASA_VOICE, 
 
 dev: ## Like run, but with the instant placeholder voice (no model needed)
 	cd api && KASA_VOICE=$${KASA_VOICE:-tone} .venv/bin/uvicorn kasa.app:app --reload
+
+generate: ## Read stories aloud ahead of time and store the audio: make generate ARGS="--all"
+	cd api && .venv/bin/python -m kasa.generate $(ARGS)
 
 # LANG is also the shell's locale variable, so only a LANG given on the make command line counts.
 SAY_LANG := $(if $(filter command line,$(origin LANG)),$(LANG),aka)

@@ -317,6 +317,177 @@
         }
       }
     },
+    "/api/v1/stories/{story_id}/manifest": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Story Manifest",
+        "description": "The story as a list of sentences, each with its text, audio file and length.\n\nSentences not stored yet are read aloud first (like `/audio`, this can take a while\nand may answer 503 with Retry-After; `python -m kasa.generate` prepares them ahead).\nThe audio files never change once made, so clients may keep them for a year.",
+        "operationId": "story_manifest_api_v1_stories__story_id__manifest_get",
+        "parameters": [
+          {
+            "name": "story_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Story Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioManifest"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audio/{key}": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Audio Clip",
+        "description": "One stored sentence, by the key from a manifest. Never changes, so cache it for a year.",
+        "operationId": "audio_clip_api_v1_audio__key__get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mono 16-bit PCM WAV.",
+            "content": {
+              "audio/wav": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified: the If-None-Match ETag still matches."
+          },
+          "206": {
+            "content": {
+              "audio/wav": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "description": "Part of the audio: the bytes asked for in the Range header."
+          },
+          "416": {
+            "description": "The Range header starts past the end of the audio.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tts": {
       "post": {
         "tags": [
@@ -416,6 +587,86 @@
   },
   "components": {
     "schemas": {
+      "AudioManifest": {
+        "properties": {
+          "story_id": {
+            "type": "string",
+            "title": "Story Id",
+            "examples": [
+              "twi-greetings"
+            ]
+          },
+          "sentences": {
+            "items": {
+              "$ref": "#/components/schemas/AudioSentence"
+            },
+            "type": "array",
+            "title": "Sentences"
+          },
+          "pause_seconds": {
+            "type": "number",
+            "title": "Pause Seconds",
+            "description": "Silence the whole-story `/audio` file puts between sentences.",
+            "examples": [
+              0.35
+            ]
+          },
+          "total_seconds": {
+            "type": "number",
+            "title": "Total Seconds",
+            "description": "Length of the whole-story `/audio` file."
+          }
+        },
+        "type": "object",
+        "required": [
+          "story_id",
+          "sentences",
+          "pause_seconds",
+          "total_seconds"
+        ],
+        "title": "AudioManifest",
+        "description": "A story as sentences, for a player that highlights the sentence being read."
+      },
+      "AudioSentence": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index",
+            "description": "Position in the story, from 0.",
+            "examples": [
+              0
+            ]
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "The sentence as it is read aloud."
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "Path of this sentence's WAV on the API. Its name is a hash of the content, so the file never changes.",
+            "examples": [
+              "/api/v1/audio/3f2a..."
+            ]
+          },
+          "duration_seconds": {
+            "type": "number",
+            "title": "Duration Seconds",
+            "examples": [
+              2.4
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "text",
+          "url",
+          "duration_seconds"
+        ],
+        "title": "AudioSentence"
+      },
       "ErrorResponse": {
         "properties": {
           "detail": {

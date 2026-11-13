@@ -296,8 +296,8 @@ def test_committed_openapi_json_is_current():
 
 
 def test_abena_voice_is_part_of_the_cache_key():
-    from kasa.app import _voice_id
     from kasa.config import Settings
+    from kasa.speaker import voice_id as _voice_id
 
     a = _voice_id(Settings(_env_file=None, kasa_voice="abena"), None)
     b = _voice_id(Settings(_env_file=None, kasa_voice="abena", abena_voices={"aka": "x"}), None)
@@ -332,3 +332,62 @@ def test_busy_voice_retry_after_has_a_minimum():
 def test_refused_text_gives_502():
     r = _abena_down(400).post("/api/v1/tts", json={"text": "Akwaaba", "language": "aka"})
     assert r.status_code == 502
+
+
+# --- stored sentences and the manifest ---------------------------------------------
+
+
+def test_manifest_lists_sentences_in_story_order(app_client, synth):
+    m = app_client.get("/api/v1/stories/a-twi/manifest").json()
+    assert m["story_id"] == "a-twi"
+    assert [x["text"] for x in m["sentences"]] == ["Akwaaba.", "Wo ho te sɛn?"]
+    assert [x["index"] for x in m["sentences"]] == [0, 1]
+    assert all(x["duration_seconds"] == 0.1 for x in m["sentences"])
+    assert m["pause_seconds"] == 0.35
+    assert m["total_seconds"] == pytest.approx(0.55)
+
+
+def test_manifest_matches_the_whole_story_audio_length(app_client):
+    m = app_client.get("/api/v1/stories/a-twi/manifest").json()
+    wav = app_client.get("/api/v1/stories/a-twi/audio").content
+    with wave.open(io.BytesIO(wav)) as w:
+        assert w.getnframes() / w.getframerate() == pytest.approx(m["total_seconds"], abs=0.01)
+
+
+def test_each_manifest_url_serves_that_sentence_with_year_long_caching(app_client):
+    m = app_client.get("/api/v1/stories/a-twi/manifest").json()
+    r = app_client.get(m["sentences"][0]["url"])
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "audio/wav"
+    assert r.headers["cache-control"] == "public, max-age=31536000, immutable"
+    assert frames(r.content) == 1600
+    again = app_client.get(m["sentences"][0]["url"], headers={"If-None-Match": r.headers["etag"]})
+    assert again.status_code == 304
+
+
+def test_unknown_or_malformed_audio_keys_are_404(app_client):
+    for key in ("0" * 64, "nothex", "../etc/passwd", "A" * 64):
+        assert app_client.get(f"/api/v1/audio/{key}").status_code == 404
+
+
+def test_an_edited_sentence_is_the_only_one_read_again(synth):
+    stories = {"s": {"id": "s", "title": "S", "language": "aka", "text": "Akwaaba. Wo ho te sɛn?"}}
+    app = create_app(synth=synth, stories=stories, settings=make_settings())
+    client = TestClient(app)
+    client.get("/api/v1/stories/s/manifest")
+    assert len(synth.calls) == 2
+    app.state.stories["s"]["text"] = "Akwaaba. Me ho yɛ."
+    client.get("/api/v1/stories/s/manifest")
+    assert synth.calls[2:] == [("Me ho yɛ.", "aka")]
+
+
+def test_stored_sentences_survive_a_restart(tmp_path, synth):
+    def start():
+        settings = make_settings(cache_dir=tmp_path / "audio")
+        return TestClient(create_app(synth=synth, stories=STORIES, settings=settings))
+
+    start().get("/api/v1/stories/a-twi/manifest")
+    assert len(synth.calls) == 2
+    url = start().get("/api/v1/stories/a-twi/manifest").json()["sentences"][0]["url"]
+    assert start().get(url).status_code == 200
+    assert len(synth.calls) == 2  # nothing was read again

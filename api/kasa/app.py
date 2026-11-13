@@ -6,11 +6,11 @@ and in the OpenAPI schema (GET /openapi.json, interactive docs at /docs).
 
 from __future__ import annotations
 
-import json
 import logging
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,7 +18,6 @@ from fastapi.responses import FileResponse, Response
 
 from . import schemas
 from .abena import AbenaError
-from .cache import Speaker, make_cache
 from .config import Settings
 from .flags import parse_flags
 from .languages import LANGUAGES
@@ -30,11 +29,13 @@ from .observability import (
     new_request_id,
     request_id_var,
 )
+from .speaker import build_speaker
 from .stories import load_stories
-from .tts import Synthesizer
-from .voices import load_synthesizer
+from .tts import PAUSE_SECONDS, Synthesizer
 
 log = logging.getLogger(__name__)
+T = TypeVar("T")
+_AUDIO_KEY = re.compile(r"[0-9a-f]{64}")
 request_log = logging.getLogger("kasa.request")
 
 STATIC = Path(__file__).resolve().parent / "static"
@@ -67,24 +68,6 @@ def error(*codes: int) -> dict[int | str, dict[str, Any]]:
     return {code: {"model": schemas.ErrorResponse} for code in codes}
 
 
-def _voice_id(settings: Settings, synth: Synthesizer | None) -> str:
-    """Names the voice in audio cache keys, so changing voice or model never serves old audio."""
-    if synth is not None:
-        cls = type(synth)
-        return getattr(synth, "cache_id", None) or f"{cls.__module__}.{cls.__qualname__}"
-    if settings.kasa_voice == "abena":
-        return f"abena:{json.dumps(settings.abena_voices, sort_keys=True)}"
-    return f"{settings.kasa_voice}:{json.dumps(settings.tts_models, sort_keys=True)}"
-
-
-def abena_options(settings: Settings) -> dict[str, Any]:
-    return {
-        "api_key": settings.abena_api_key,
-        "base_url": settings.abena_base_url,
-        "voices": settings.abena_voices,
-    }
-
-
 def _byte_range(header: str, size: int) -> tuple[int, int] | None:
     """The first and last byte a Range header asks for, or None to send everything.
 
@@ -110,9 +93,14 @@ def _byte_range(header: str, size: int) -> tuple[int, int] | None:
     return first, last
 
 
-def _wav(request: Request, audio: bytes, key: str) -> Response:
+STORY_CACHE = "public, max-age=3600"
+# A stored sentence is named by a hash of its content, so its bytes never change.
+CLIP_CACHE = "public, max-age=31536000, immutable"
+
+
+def _wav(request: Request, audio: bytes, key: str, cache_control: str = STORY_CACHE) -> Response:
     etag = f'"{key}"'
-    headers = {"ETag": etag, "Cache-Control": "public, max-age=3600"}
+    headers = {"ETag": etag, "Cache-Control": cache_control}
     if etag in request.headers.get("if-none-match", ""):
         return Response(status_code=304, headers=headers)
     if request.method == "GET":
@@ -186,15 +174,8 @@ def create_app(
             )
             request_id_var.reset(token)
 
-    voice_id = _voice_id(settings, synth)
-    # The voice is built here but the real model only loads on the first synthesis,
-    # so startup and /healthz stay fast.
-    app.state.synth = synth or load_synthesizer(
-        settings.kasa_voice, settings.tts_models, abena_options(settings)
-    )
-    app.state.speaker = Speaker(
-        app.state.synth, make_cache(settings.cache_dir, settings.cache_max_items), voice_id
-    )
+    app.state.speaker = build_speaker(settings, synth)
+    app.state.synth = app.state.speaker.synth
     app.state.flags = parse_flags(settings.kasa_flags) if flags is None else flags
     app.state.stories = load_stories(settings.stories_dir) if stories is None else stories
     app.state.settings = settings
@@ -211,10 +192,11 @@ def create_app(
         if code not in LANGUAGES:
             raise HTTPException(400, f"Unsupported language: {code}")
 
-    def speak(request: Request, text: str, language: str) -> Response:
+    def with_voice(request: Request, text: str, language: str, work: Callable[[Any], T]) -> T:
+        """Run `work(speaker)` with the rate limit, the synthesis queue and voice errors."""
         check_language(language)
         speaker = app.state.speaker
-        # Cached audio is cheap, so only new syntheses are rate limited and queued.
+        # Stored audio is cheap, so only new syntheses are rate limited and queued.
         needs_synthesis = not speaker.is_cached(text, language)
         if needs_synthesis:
             client = request.client.host if request.client else "unknown"
@@ -228,9 +210,8 @@ def create_app(
         try:
             if needs_synthesis:
                 with gate.slot():
-                    audio, key = speaker.speak(text, language)
-            else:
-                audio, key = speaker.speak(text, language)
+                    return work(speaker)
+            return work(speaker)
         except Busy as e:
             raise HTTPException(
                 503,
@@ -249,6 +230,9 @@ def create_app(
                     headers={"Retry-After": str(retry)},
                 ) from e
             raise HTTPException(502, "The voice service could not read this text.") from e
+
+    def speak(request: Request, text: str, language: str) -> Response:
+        audio, key = with_voice(request, text, language, lambda sp: sp.speak(text, language))
         return _wav(request, audio, key)
 
     @app.get("/", include_in_schema=False)
@@ -313,6 +297,51 @@ def create_app(
         """
         s = get_story(story_id)
         return speak(request, s["text"], s["language"])
+
+    @v1.get(
+        "/stories/{story_id}/manifest",
+        response_model=schemas.AudioManifest,
+        responses=error(400, 404, 429, 502, 503),
+    )
+    def story_manifest(story_id: str, request: Request) -> schemas.AudioManifest:
+        """The story as a list of sentences, each with its text, audio file and length.
+
+        Sentences not stored yet are read aloud first (like `/audio`, this can take a while
+        and may answer 503 with Retry-After; `python -m kasa.generate` prepares them ahead).
+        The audio files never change once made, so clients may keep them for a year.
+        """
+        s = get_story(story_id)
+        clips = with_voice(
+            request, s["text"], s["language"], lambda sp: sp.clips(s["text"], s["language"])
+        )
+        sentences = [
+            schemas.AudioSentence(
+                index=i,
+                text=c.text,
+                url=f"{API_PREFIX}/audio/{c.key}",
+                duration_seconds=round(c.seconds, 3),
+            )
+            for i, c in enumerate(clips)
+        ]
+        total = sum(c.seconds for c in clips) + PAUSE_SECONDS * (len(clips) - 1)
+        return schemas.AudioManifest(
+            story_id=story_id,
+            sentences=sentences,
+            pause_seconds=PAUSE_SECONDS,
+            total_seconds=round(total, 3),
+        )
+
+    @v1.get(
+        "/audio/{key}",
+        response_class=Response,
+        responses={**WAV_RESPONSE, **RANGE_RESPONSE, **error(404)},
+    )
+    def audio_clip(key: str, request: Request) -> Response:
+        """One stored sentence, by the key from a manifest. Never changes, so cache it for a year."""
+        wav = app.state.speaker.cache.get(key) if _AUDIO_KEY.fullmatch(key) else None
+        if wav is None:
+            raise HTTPException(404, "Audio not found")
+        return _wav(request, wav, key, CLIP_CACHE)
 
     @v1.post(
         "/tts",

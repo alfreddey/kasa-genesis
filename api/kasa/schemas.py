@@ -41,6 +41,29 @@ class TtsRequest(BaseModel):
     language: str = Field(description="Language code, see GET /api/v1/languages.")
 
 
+class AudioSentence(BaseModel):
+    index: int = Field(description="Position in the story, from 0.", examples=[0])
+    text: str = Field(description="The sentence as it is read aloud.")
+    url: str = Field(
+        description="Path of this sentence's WAV on the API. Its name is a hash of the "
+        "content, so the file never changes.",
+        examples=["/api/v1/audio/3f2a..."],
+    )
+    duration_seconds: float = Field(examples=[2.4])
+
+
+class AudioManifest(BaseModel):
+    """A story as sentences, for a player that highlights the sentence being read."""
+
+    story_id: str = Field(examples=["twi-greetings"])
+    sentences: list[AudioSentence]
+    pause_seconds: float = Field(
+        description="Silence the whole-story `/audio` file puts between sentences.",
+        examples=[0.35],
+    )
+    total_seconds: float = Field(description="Length of the whole-story `/audio` file.")
+
+
 class Health(BaseModel):
     status: str = Field(examples=["ok"])
 

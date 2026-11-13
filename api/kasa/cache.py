@@ -1,7 +1,9 @@
 """Cache synthesized audio so the same text is never synthesized twice.
 
-The key is a SHA-256 of everything that changes the sound: the voice, the language and
-the normalized text, plus AUDIO_VERSION. Bump AUDIO_VERSION whenever a change to
+Audio is stored one sentence at a time. The key is a SHA-256 of everything that changes
+the sound of a sentence: the voice, the language and the normalized text, plus
+AUDIO_VERSION. Editing one sentence of a story therefore reads only that sentence again,
+and a new voice reads everything again. A whole story is built by joining its sentences. Bump AUDIO_VERSION whenever a change to
 kasa/tts.py (pauses, chunking, encoding) should make old cached files stale.
 
 Two stores share one interface:
@@ -20,10 +22,10 @@ import tempfile
 import threading
 from collections import OrderedDict
 from pathlib import Path
-from typing import Protocol
+from typing import NamedTuple, Protocol
 
 from .text import normalize_text
-from .tts import Synthesizer, read_aloud
+from .tts import Synthesizer, join_wavs, read_aloud, sentences_of, wav_seconds
 
 AUDIO_VERSION = "1"
 
@@ -94,11 +96,24 @@ def audio_key(voice_id: str, language: str, text: str) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+class Clip(NamedTuple):
+    """One sentence of audio: what it says, where it is stored and how long it is."""
+
+    text: str
+    key: str
+    wav: bytes
+
+    @property
+    def seconds(self) -> float:
+        return wav_seconds(self.wav)
+
+
 class Speaker:
     """Turns text into WAV bytes through a cache. Safe to call from many threads.
 
-    Two requests for the same audio at the same time wait for one synthesis instead of
-    running two, because the model is the slow and expensive part.
+    Text is split into sentences and each one is cached on its own. Two requests for the
+    same sentence at the same time wait for one synthesis instead of running two, because
+    the model is the slow and expensive part.
     """
 
     _STRIPES = 64
@@ -109,24 +124,52 @@ class Speaker:
         self.voice_id = voice_id
         self._locks = [threading.Lock() for _ in range(self._STRIPES)]
 
+    def sentence_key(self, sentence: str, language: str) -> str:
+        return audio_key(self.voice_id, language, sentence)
+
+    def plan(self, text: str, language: str) -> list[tuple[str, str]]:
+        """(sentence, key) for each sentence of `text`, without synthesizing anything.
+
+        Raises ValueError if there is nothing to read aloud.
+        """
+        sentences = sentences_of(text)
+        if not sentences:
+            raise ValueError("Text has nothing to read aloud")
+        return [(s, self.sentence_key(s, language)) for s in sentences]
+
     def key(self, text: str, language: str) -> str:
-        return audio_key(self.voice_id, language, text)
+        """Identifies the whole audio of `text`: it changes when any sentence does."""
+        keys = [k for _, k in self.plan(text, language)]
+        return hashlib.sha256("\0".join(keys).encode("ascii")).hexdigest()
 
     def is_cached(self, text: str, language: str) -> bool:
-        return self.cache.get(self.key(text, language)) is not None
+        """True when every sentence is stored, so no synthesis is needed."""
+        try:
+            return all(self.cache.get(k) is not None for _, k in self.plan(text, language))
+        except ValueError:
+            return False
+
+    def sentence(self, sentence: str, language: str) -> Clip:
+        """Audio of one sentence, synthesized only if it is not stored yet."""
+        key = self.sentence_key(sentence, language)
+        wav = self.cache.get(key)
+        if wav is None:
+            with self._locks[int(key[:8], 16) % self._STRIPES]:
+                wav = self.cache.get(key)  # another thread may have just made it
+                if wav is None:
+                    wav = read_aloud(self.synth, sentence, language)
+                    self.cache.put(key, wav)
+        return Clip(sentence, key, wav)
+
+    def clips(self, text: str, language: str) -> list[Clip]:
+        """Audio of each sentence of `text`, in order. Raises ValueError if nothing to read."""
+        return [self.sentence(s, language) for s, _ in self.plan(text, language)]
 
     def speak(self, text: str, language: str) -> tuple[bytes, str]:
-        """Return (WAV bytes, cache key). Raises ValueError if there is nothing to read."""
-        key = self.key(text, language)
-        audio = self.cache.get(key)
-        if audio is not None:
-            return audio, key
-        with self._locks[int(key[:8], 16) % self._STRIPES]:
-            audio = self.cache.get(key)  # another thread may have just made it
-            if audio is None:
-                audio = read_aloud(self.synth, text, language)
-                self.cache.put(key, audio)
-        return audio, key
+        """Return (WAV bytes of the whole text, its key). Raises ValueError if nothing to read."""
+        clips = self.clips(text, language)
+        key = hashlib.sha256("\0".join(c.key for c in clips).encode("ascii")).hexdigest()
+        return join_wavs([c.wav for c in clips]), key
 
 
 def make_cache(cache_dir: Path | None, max_items: int) -> AudioCache:

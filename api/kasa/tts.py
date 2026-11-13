@@ -53,11 +53,49 @@ def encode_wav(samples: Sequence[float] | array.array[int], rate: int) -> bytes:
     return buf.getvalue()
 
 
+def sentences_of(text: str) -> list[str]:
+    """The pieces of `text` that are read aloud one at a time, in order.
+
+    Chunks that are only punctuation ("...", "-") are skipped: a tokenizer turns them
+    into an empty input, which makes VITS models crash instead of returning silence.
+    """
+    return [c for c in split_sentences(normalize_text(text)) if has_speech(c)]
+
+
+def decode_pcm(wav: bytes) -> tuple[array.array[int], int]:
+    """Read a mono 16-bit WAV made by encode_wav into (samples, sample rate)."""
+    with wave.open(io.BytesIO(wav), "rb") as w:
+        pcm = array.array("h")
+        pcm.frombytes(w.readframes(w.getnframes()))
+        return pcm, w.getframerate()
+
+
+def wav_seconds(wav: bytes) -> float:
+    with wave.open(io.BytesIO(wav), "rb") as w:
+        return w.getnframes() / w.getframerate()
+
+
+def join_wavs(clips: Sequence[bytes]) -> bytes:
+    """One WAV from several, with PAUSE_SECONDS of silence between them."""
+    pcm = array.array("h")
+    rate: int | None = None
+    for clip in clips:
+        samples, clip_rate = decode_pcm(clip)
+        if rate is None:
+            rate = clip_rate
+        elif clip_rate != rate:
+            raise RuntimeError(f"Clips use different sample rates: {rate} and {clip_rate}")
+        if pcm:
+            pcm.extend([0] * int(rate * PAUSE_SECONDS))
+        pcm.extend(samples)
+    if rate is None:
+        raise ValueError("Text has nothing to read aloud")
+    return encode_wav(pcm, rate)
+
+
 def read_aloud(synth: Synthesizer, text: str, language: str) -> bytes:
     get_language(language)  # validate early
-    # Chunks that are only punctuation ("...", "-") are skipped: a tokenizer turns them
-    # into an empty input, which makes VITS models crash instead of returning silence.
-    chunks = [c for c in split_sentences(normalize_text(text)) if has_speech(c)]
+    chunks = sentences_of(text)
     if not chunks:
         raise ValueError("Text has nothing to read aloud")
     # Samples are stored as 16-bit integers as they arrive. A list of Python floats for a

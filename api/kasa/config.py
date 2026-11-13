@@ -38,8 +38,8 @@ class Settings(BaseSettings):
     )
     # Where synthesized audio is cached. Unset keeps the cache in memory only.
     cache_dir: Path | None = None
-    # Most audio files kept in the in-memory cache (used when CACHE_DIR is unset).
-    cache_max_items: int = Field(default=64, ge=0)
+    # Most sentences kept in the in-memory cache (used when CACHE_DIR is unset).
+    cache_max_items: int = Field(default=512, ge=0)
     # Override the Hugging Face model id per language, as JSON: {"aka": "org/model"}.
     tts_models: dict[str, str] = Field(default_factory=dict)
 

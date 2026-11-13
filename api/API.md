@@ -19,6 +19,8 @@ at `/docs`; set `ENABLE_DOCS=false` in production to hide `/docs` and `/redoc`).
 | `GET /api/v1/stories?language=aka` | `StorySummary[]`, sorted by `id`. `language` is optional. |
 | `GET /api/v1/stories/{id}` | `Story` |
 | `GET /api/v1/stories/{id}/audio` | The whole story as `audio/wav`. Use the URL directly as an `<audio src>`. |
+| `GET /api/v1/stories/{id}/manifest` | `AudioManifest`: the story as sentences, each with its text, audio file and length. Use it for a player that follows the sentence being read. |
+| `GET /api/v1/audio/{key}` | One stored sentence as `audio/wav`, by the `url` from a manifest. Never changes, so it is sent with `Cache-Control: public, max-age=31536000, immutable`. 404 if the key is unknown. |
 | `POST /api/v1/tts` | Body `TtsRequest`, returns `audio/wav`. For text that is not a stored story. |
 | `GET /api/v1/flags` | `{[flag: string]: boolean}`, every feature flag (see `kasa/flags.py`). |
 
@@ -29,6 +31,13 @@ type Language = { code: string; name: string };             // {"code": "aka", "
 type StorySummary = { id: string; title: string; language: string };
 type Story = StorySummary & { text: string };                // paragraphs separated by "\n\n"
 type TtsRequest = { text: string; language: string };       // text: 1 to 5000 characters
+type AudioSentence = { index: number; text: string; url: string; duration_seconds: number };
+type AudioManifest = {
+  story_id: string;
+  sentences: AudioSentence[];   // in story order
+  pause_seconds: number;        // silence `/audio` puts between sentences
+  total_seconds: number;        // length of the whole-story `/audio` file
+};
 type ErrorResponse = { detail: string };
 ```
 
@@ -47,13 +56,21 @@ type ErrorResponse = { detail: string };
 
 ## Audio and caching
 
-Audio is generated on the first request, which can take several seconds per sentence with
-the real model, and then cached, so the same text with the same voice is never synthesized
-twice. Story audio and `POST /tts` share one cache: the key is the voice, the language and
-the normalized text.
+Audio is stored one sentence at a time. A sentence is read aloud the first time it is
+needed, which can take several seconds with a real voice, and never again: the key is the
+voice, the language and the normalized sentence. Editing one sentence of a story reads only
+that sentence again; a new voice reads everything again. Whole-story audio (`/audio`),
+manifests and `POST /tts` all share the stored sentences.
+
+To avoid making a child wait, prepare stories ahead of time with
+`python -m kasa.generate --all` (or `make generate ARGS="--all"`), using the same settings
+as the server, including `CACHE_DIR`. It skips sentences that are already stored and waits
+and retries when the voice is busy.
 
 - Set `CACHE_DIR` to keep the cache on disk across restarts; otherwise it is in memory.
-- Audio responses carry an `ETag` and `Cache-Control: public, max-age=3600`. Send
+- Whole-story and `POST /tts` audio carry an `ETag` and `Cache-Control: public, max-age=3600`
+  (the ETag changes when any sentence does); a stored sentence from `/audio/{key}` is
+  immutable and cached for a year. Send
   `If-None-Match` with the ETag to get `304 Not Modified`. Browsers do this on their own.
 - Two requests for the same audio at the same moment wait for a single synthesis.
 - `GET /api/v1/stories/{id}/audio` answers `Range` requests with `206 Partial Content`
@@ -76,8 +93,8 @@ All are environment variables, also read from a `.env` file. See the repo-root
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `ALLOWED_ORIGINS` | `http://localhost:3000` | CORS origins, comma-separated, or `*` |
-| `CACHE_DIR` | empty (memory) | Folder for cached WAV files |
-| `CACHE_MAX_ITEMS` | `64` | Files kept by the in-memory cache |
+| `CACHE_DIR` | empty (memory) | Folder for stored sentence WAV files |
+| `CACHE_MAX_ITEMS` | `512` | Sentences kept by the in-memory cache |
 | `STORIES_DIR` | repo `stories/` | Folder of story JSON files |
 | `KASA_VOICE` | `mms` | Voice engine (`mms`, `tone`, `silent`, or `module:attribute`) |
 | `TTS_MODELS` | `{}` | JSON map of language to Hugging Face model id, for `mms` |
