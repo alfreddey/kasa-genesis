@@ -36,7 +36,7 @@ src/components/             UI. One component per file, kebab-case names, test n
   language-filter.tsx       Language picker: paper buttons, the chosen one stays pressed in (aria-pressed).
   icons.tsx                 Inline SVG icons (currentColor).
   plain-page.tsx            Scene + site header + narrow paper card for the error and 404 pages.
-  story-player.tsx          Player page: cover, a hidden <audio> driven by our own controls (play/pause, 10 s skips, a progress bar to drag), heart (save), "Show the words" switch (listening is the default), next story link. Picks a story up where the child stopped and ends with "The end!" and a star.
+  story-player.tsx          Player page: cover, a hidden <audio> driven by our own controls (play/pause, 10 s skips, a progress bar to drag), heart (save), "Show the words" switch (listening is the default; when on, the sentence being read is highlighted from `/stories/{id}/manifest` via `src/lib/read-along.ts`, and plain paragraphs show if the manifest is missing or does not match), next story link. Picks a story up where the child stopped and ends with "The end!" and a star.
   offline-banner.tsx        Shown in the layout when the browser goes offline.
   error-view.tsx            Friendly crash fallback used by error.tsx.
   status.tsx                <Loading> and <ErrorState> (with retry), both with the mascot. Use these for every async state.
@@ -97,7 +97,7 @@ Before pushing, run `npm run lint && npm run typecheck && npm test && npm run bu
 | Add a page                                               | New folder in `src/app/` with `page.tsx` that renders a component from `src/components/`                      |
 | Call a new endpoint                                      | Add a function in `src/lib/api.ts` (types come from `api-types.gen.ts`), plus a test in `src/lib/api.test.ts` |
 | Change the library                                       | `src/components/library.tsx` and its test                                                                     |
-| Change the player (and later the read-along reader, #15) | `src/components/story-player.tsx` and its test                                                                |
+| Change the player (and later the read-along reader, #15) | `src/components/story-player.tsx` and its test; sentence highlight logic in `src/lib/read-along.ts`           |
 | Change loading or error messages                         | `src/components/status.tsx`                                                                                   |
 | Change what is remembered about listening                | `src/lib/listening.ts` and its test; the player, Home, the story card and Parents read it                     |
 | Change colours or layout                                 | `src/app/globals.css` (read `docs/design-direction.md` first)                                                 |

@@ -9,6 +9,7 @@ import type { components } from "./api-types.gen";
 export type Language = components["schemas"]["Language"];
 export type StorySummary = components["schemas"]["StorySummary"];
 export type Story = components["schemas"]["Story"];
+export type AudioManifest = components["schemas"]["AudioManifest"];
 
 const DEFAULT_API_URL = "http://localhost:8000";
 const TIMEOUT_MS = 10_000;
@@ -96,4 +97,12 @@ export function fetchStory(id: string, signal?: AbortSignal): Promise<Story> {
 /** URL of a story's narration (audio/wav), for an <audio> element's src. */
 export function storyAudioUrl(id: string): string {
   return apiUrl(`/stories/${encodeURIComponent(id)}/audio`);
+}
+
+/**
+ * A story as sentences, each with its length, so the reader can follow along. The first request
+ * for a story may wait while its sentences are read aloud.
+ */
+export function fetchManifest(id: string, signal?: AbortSignal): Promise<AudioManifest> {
+  return apiFetch(`/stories/${encodeURIComponent(id)}/manifest`, { signal });
 }

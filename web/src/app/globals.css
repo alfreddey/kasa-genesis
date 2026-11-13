@@ -1934,6 +1934,26 @@ h2 {
 .story-text p:last-child {
   margin-bottom: 0;
 }
+/* Words with the sentence being read marked. Blank lines in the text stay as paragraph breaks. */
+.story-text-flow {
+  margin: 0;
+  white-space: pre-line;
+}
+.sentence {
+  border-radius: 8px;
+  padding: 0 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background-color 0.2s ease;
+}
+.sentence[data-current] {
+  background: color-mix(in srgb, var(--color-brand-secondary) 35%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sentence {
+    transition: none;
+  }
+}
 
 .next-story {
   display: flex;

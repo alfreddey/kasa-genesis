@@ -87,6 +87,41 @@ it("shows the words one paragraph at a time", async () => {
   expect(screen.getByText("Medaase.").tagName).toBe("P");
 });
 
+const manifest = {
+  story_id: "twi-greetings",
+  pause_seconds: 0.5,
+  sentences: [
+    { index: 0, text: "Akwaaba.", url: "/api/v1/audio/a", duration_seconds: 2 },
+    { index: 1, text: "Wo ho te sɛn?", url: "/api/v1/audio/b", duration_seconds: 3 },
+  ],
+};
+
+it("highlights the sentence being read when the words are shown", async () => {
+  mockApi({ ...routes, "/stories/twi-greetings/manifest": { body: manifest } });
+  render(<StoryPlayer id="twi-greetings" />);
+  const audio = (await screen.findByLabelText("Listen to Twi greetings")) as HTMLAudioElement;
+  await userEvent.click(screen.getByRole("switch", { name: "Show the words" }));
+  const first = await screen.findByText("Akwaaba.");
+  const second = screen.getByText("Wo ho te sɛn?");
+
+  expect(first).not.toHaveAttribute("data-current");
+  loadAudio(audio, { duration: 6, at: 1 });
+  expect(first).toHaveAttribute("data-current", "true");
+  expect(second).not.toHaveAttribute("data-current");
+
+  audio.currentTime = 3;
+  fireEvent.timeUpdate(audio);
+  expect(first).not.toHaveAttribute("data-current");
+  expect(second).toHaveAttribute("data-current", "true");
+});
+
+it("shows the plain words when there is no sentence list", async () => {
+  await renderPlayer();
+  await userEvent.click(screen.getByRole("switch", { name: "Show the words" }));
+  const words = screen.getByText("Akwaaba. Wo ho te sɛn?");
+  expect(words).not.toHaveAttribute("data-current");
+});
+
 it("saves the story with the heart, and links to the next story", async () => {
   await renderPlayer();
   const heart = screen.getByRole("button", { name: "Save this story" });

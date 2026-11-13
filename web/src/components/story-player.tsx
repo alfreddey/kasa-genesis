@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
-import { ApiError, fetchStories, fetchStory, storyAudioUrl, type StorySummary } from "@/lib/api";
+import {
+  ApiError,
+  fetchManifest,
+  fetchStories,
+  fetchStory,
+  storyAudioUrl,
+  type StorySummary,
+} from "@/lib/api";
 import { useFavorites } from "@/lib/favorites";
 import { htmlLang } from "@/lib/home";
 import {
@@ -12,6 +19,7 @@ import {
   starCount,
   useListening,
 } from "@/lib/listening";
+import { layOut, sentenceAt } from "@/lib/read-along";
 import { formatTime, spokenTime } from "@/lib/time";
 import { useApi } from "@/lib/use-api";
 import { useLanguages } from "@/lib/use-languages";
@@ -77,6 +85,11 @@ export function StoryPlayer({ id }: { id: string }) {
   const { name } = useLanguages();
   const { isSaved, toggle } = useFavorites();
   const all = useApi((signal) => fetchStories(undefined, signal), []);
+  // The sentence list is only needed to highlight words, so it is asked for when they are shown.
+  const sentences = useApi(
+    (signal) => (readAlong ? fetchManifest(id, signal) : Promise.resolve(null)),
+    [id, readAlong],
+  );
   const listening = useListening();
   const stars = starCount(listening);
 
@@ -258,6 +271,19 @@ export function StoryPlayer({ id }: { id: string }) {
         ? "Keep listening"
         : "Play";
   const progress = known ? Math.min(100, (position / duration) * 100) : 0;
+  // The sentence being read, once the child has started. If the list is missing or does not
+  // match the text, the words are shown without a highlight.
+  const manifest = sentences.status === "success" ? sentences.data : null;
+  const laidOut = manifest
+    ? layOut(
+        text,
+        manifest.sentences.map((s) => s.text),
+      )
+    : null;
+  const current =
+    manifest && (active || audio === "paused" || position > 0)
+      ? sentenceAt(manifest, position)
+      : -1;
 
   return (
     <AppShell current="Library">
@@ -450,7 +476,24 @@ export function StoryPlayer({ id }: { id: string }) {
             </span>
             <span className="switch-label">Show the words</span>
           </label>
-          {readAlong && (
+          {readAlong && laidOut && (
+            <p className="story-text story-text-flow" lang={htmlLang(language)}>
+              {laidOut.map((piece, i) =>
+                piece.index === null ? (
+                  piece.text
+                ) : (
+                  <span
+                    key={i}
+                    className="sentence"
+                    data-current={piece.index === current || undefined}
+                  >
+                    {piece.text}
+                  </span>
+                ),
+              )}
+            </p>
+          )}
+          {readAlong && !laidOut && (
             <div className="story-text" lang={htmlLang(language)}>
               {text.split(/\n\s*\n/).map((paragraph, i) => (
                 <p key={i}>{paragraph}</p>
